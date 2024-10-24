@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
@@ -20,12 +21,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewmodel.viewModelFactory
 import com.mcldev.comprainteligente.ui.theme.CompraInteligenteTheme
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(modifier: Modifier) {
+fun HomeScreen(
+    modifier: Modifier,
+) {
     Column (
         modifier = Modifier.statusBarsPadding(), // Fix to respect the status bar's padding
     ) {
@@ -34,7 +40,7 @@ fun HomeScreen(modifier: Modifier) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically // Ensure buttons and SearchBar are vertically aligned
         ) {
-            FilledIconButton(onClick = { /* doSomething() */ }, ) {
+            FilledIconButton(onClick = { /* doSomething() */ }, modifier = Modifier.padding(top = 8.dp)) {
                 Icon(Icons.Filled.Settings , contentDescription = "Settings")
             }
 
@@ -51,7 +57,7 @@ fun HomeScreen(modifier: Modifier) {
                 modifier = Modifier.weight(1f)
             ) { }
 
-            FilledIconButton(onClick = { /* doSomething() */ }) {
+            FilledIconButton(onClick = { /* doSomething() */ },  modifier = Modifier.padding(top = 8.dp)) {
                 Icon(Icons.Filled.Menu , contentDescription = "List of tickets")
             }
 
