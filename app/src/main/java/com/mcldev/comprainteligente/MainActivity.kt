@@ -4,14 +4,12 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.ViewModelProvider
 import com.mcldev.comprainteligente.data.DataBase
+import com.mcldev.comprainteligente.ui.HomeScreenVM
+import com.mcldev.comprainteligente.ui.HomeScreenVmFactory
+import com.mcldev.comprainteligente.ui.HomeScreen
 import com.mcldev.comprainteligente.ui.theme.CompraInteligenteTheme
 
 class MainActivity : ComponentActivity() {
@@ -23,8 +21,14 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        // Create the ViewModel with the DAOs
+        val homeScreenViewModel = ViewModelProvider(
+            this,
+            HomeScreenVmFactory(database.productDao(), database.supermarketDao())
+        ).get(HomeScreenVM::class.java)
         setContent {
             CompraInteligenteTheme {
+                HomeScreen(modifier = Modifier)
             }
         }
     }

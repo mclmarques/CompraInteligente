@@ -8,7 +8,7 @@ interface ProductDao {
     @Upsert
     suspend fun upsertProduct(product: Product)
 
-    @Query("SELECT * FROM product WHERE name = :productName")
+    @Query("SELECT * FROM product WHERE name LIKE '%' || :productName || '%'")
     suspend fun getProductsByName(productName: String): List<Product>
 
     @Query("SELECT * FROM product WHERE supermarketId = :supermarketId")
