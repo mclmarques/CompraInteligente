@@ -7,9 +7,9 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.ViewModelProvider
 import com.mcldev.comprainteligente.data.DataBase
+import com.mcldev.comprainteligente.ui.HomeScreen
 import com.mcldev.comprainteligente.ui.HomeScreenVM
 import com.mcldev.comprainteligente.ui.HomeScreenVmFactory
-import com.mcldev.comprainteligente.ui.HomeScreen
 import com.mcldev.comprainteligente.ui.theme.CompraInteligenteTheme
 
 class MainActivity : ComponentActivity() {
@@ -26,9 +26,19 @@ class MainActivity : ComponentActivity() {
             this,
             HomeScreenVmFactory(database.productDao(), database.supermarketDao())
         ).get(HomeScreenVM::class.java)
+        /*lifecycleScope.launch {
+            database.productDao().upsertProduct(Product(
+                id = 3,
+                name = "Laranja",
+                price = 4.78,
+                unit = "R$/Kg",
+                supermarketId = 1))
+
+        }*/
+
         setContent {
             CompraInteligenteTheme {
-                HomeScreen(modifier = Modifier)
+                HomeScreen(modifier = Modifier, viewModel = homeScreenViewModel)
             }
         }
     }

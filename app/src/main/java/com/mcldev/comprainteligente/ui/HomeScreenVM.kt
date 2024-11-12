@@ -24,11 +24,11 @@ class HomeScreenVM(
     val searchResults = _searchResults.asStateFlow()
 
     fun onSearchTextChange(text: String) {
-        _searchText.value = text
+        _searchText.value  = text
         performSearch(text)
     }
 
-    private fun performSearch(query: String) {
+    fun performSearch(query: String) {
         viewModelScope.launch {
             // Simulate debounce logic (wait for a pause in typing)
             delay(300)
@@ -42,6 +42,13 @@ class HomeScreenVM(
             } else {
                 _searchResults.value = emptyList() // Clear results when query is empty
             }
+        }
+    }
+
+    fun onToogleSearch() {
+        _isSearching.value = !_isSearching.value
+        if (!_isSearching.value) {
+            onSearchTextChange("")
         }
     }
 
