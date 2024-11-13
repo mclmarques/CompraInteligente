@@ -9,9 +9,12 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -131,9 +134,7 @@ fun HomeScreen(
             expanded = expanded,
             onExpandedChange = { expanded = it },
         ) {
-            if (isSearching) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
-            } else if (searchResults.isNotEmpty()) {
+            if (searchResults.isNotEmpty()) {
                 LazyColumn(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -155,6 +156,22 @@ fun HomeScreen(
                     text = "No results found",
                     modifier = Modifier.align(Alignment.CenterHorizontally).padding(16.dp)
                 )
+            }
+        }
+        LazyColumn (
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            items(searchResults) { product ->
+                Row {
+                    Text(text = product.supermarketId.toString())
+                    Spacer(modifier = Modifier.width(32.dp))
+                    //TODO: Add a method to compare the price against the other products
+                    Text(text = product.price.toString())
+                }
+
             }
         }
     }
