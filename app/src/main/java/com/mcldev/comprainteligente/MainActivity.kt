@@ -13,6 +13,8 @@ import com.mcldev.comprainteligente.data.DataBase
 import com.mcldev.comprainteligente.ui.HomeScreen
 import com.mcldev.comprainteligente.ui.HomeScreenVM
 import com.mcldev.comprainteligente.ui.HomeScreenVmFactory
+import com.mcldev.comprainteligente.ui.ScanScreen
+import com.mcldev.comprainteligente.ui.ScanScreenVM
 import com.mcldev.comprainteligente.ui.Screen
 import com.mcldev.comprainteligente.ui.theme.CompraInteligenteTheme
 
@@ -30,6 +32,9 @@ class MainActivity : ComponentActivity() {
             this,
             HomeScreenVmFactory(database.productDao(), database.supermarketDao())
         ).get(HomeScreenVM::class.java)
+
+        val scanScreenVM = ScanScreenVM()
+
         /*lifecycleScope.launch {
             database.productDao().upsertProduct(Product(
                 id = 3,
@@ -48,7 +53,7 @@ class MainActivity : ComponentActivity() {
                     startDestination = Screen.Home.route
                 ) {
                     composable(Screen.Home.route) { HomeScreen(modifier = Modifier, viewModel = homeScreenViewModel, navController = navController)}
-                    //composable(Screen.Scan.route) { ScanScreen(modifier = Modifier, viewModel = homeScreenViewModel, navController = navController) }
+                    composable(Screen.Scan.route) { ScanScreen(modifier = Modifier, viewModel = scanScreenVM, navController = navController) }
                     //composable(Screen.Receipts.route) { ReceiptsScreen(modifier = Modifier, viewModel = homeScreenViewModel, navController = navController) }
                     //composable(Screen.Settings.route) { SettingsScreen(modifier = Modifier, viewModel = homeScreenViewModel, navController = navController) }
                 }
