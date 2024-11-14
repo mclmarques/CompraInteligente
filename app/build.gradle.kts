@@ -61,6 +61,9 @@ dependencies {
     //MaterialTheme3
     implementation(libs.material3)
 
+    //Navigation
+    implementation(libs.androidx.navigation.compose)
+
     //Room
     implementation(libs.androidx.room.runtime)
     annotationProcessor(libs.androidx.room.compiler)

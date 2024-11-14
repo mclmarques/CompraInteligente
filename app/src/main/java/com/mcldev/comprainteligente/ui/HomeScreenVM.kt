@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mcldev.comprainteligente.data.Product
 import com.mcldev.comprainteligente.data.ProductDao
+import com.mcldev.comprainteligente.data.Supermarket
 import com.mcldev.comprainteligente.data.SupermarketDao
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,9 +29,12 @@ class HomeScreenVM(
         performSearch(text)
     }
 
+    suspend fun getSupermarket(supermarketID: Int): String? {
+        return supermarketDao.getSupermarketById(supermarketID)?.name
+    }
+
     fun performSearch(query: String) {
         viewModelScope.launch {
-            // Simulate debounce logic (wait for a pause in typing)
             delay(300)
 
             if (query.isNotEmpty()) {

@@ -44,13 +44,15 @@ import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     modifier: Modifier,
-    viewModel: HomeScreenVM
+    viewModel: HomeScreenVM,
+    navController: NavHostController
 ) {
     val searchText by viewModel.searchText.collectAsState()
     val isSearching by viewModel.isSearching.collectAsState()
@@ -64,6 +66,7 @@ fun HomeScreen(
             .fillMaxSize()
             .semantics { isTraversalGroup = true })
     {
+
         SearchBar(
             modifier = Modifier
                 .semantics { traversalIndex = 0f }
@@ -166,10 +169,10 @@ fun HomeScreen(
         ) {
             items(searchResults) { product ->
                 Row {
-                    Text(text = product.supermarketId.toString())
+                    Text(text = "TODO: Implement method translate SupermarketID into it's name")
                     Spacer(modifier = Modifier.width(32.dp))
                     //TODO: Add a method to compare the price against the other products
-                    Text(text = product.price.toString())
+                    Text(text = product.price.toString() + " " + product.unit)
                 }
 
             }
