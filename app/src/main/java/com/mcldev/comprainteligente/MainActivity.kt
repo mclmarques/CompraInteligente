@@ -4,6 +4,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.compose.NavHost
@@ -19,10 +21,11 @@ import com.mcldev.comprainteligente.ui.Screen
 import com.mcldev.comprainteligente.ui.theme.CompraInteligenteTheme
 
 class MainActivity : ComponentActivity() {
-    // Access the AppDatabase from MyApp class
     private val database: DataBase by lazy {
         Application.getDatabase()
     }
+    private val requestCameraPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -33,7 +36,9 @@ class MainActivity : ComponentActivity() {
             HomeScreenVmFactory(database.productDao(), database.supermarketDao())
         ).get(HomeScreenVM::class.java)
 
-        val scanScreenVM = ScanScreenVM()
+        val scanScreenVM = ScanScreenVM(
+            context = this
+        )
 
         /*lifecycleScope.launch {
             database.productDao().upsertProduct(Product(

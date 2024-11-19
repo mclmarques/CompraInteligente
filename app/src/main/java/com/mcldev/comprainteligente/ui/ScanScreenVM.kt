@@ -1,19 +1,20 @@
 package com.mcldev.comprainteligente.ui
 
-import androidx.lifecycle.ViewModel
-import com.mcldev.comprainteligente.data.ProductDao
-import com.mcldev.comprainteligente.data.SupermarketDao
+import android.content.Context
 import android.graphics.Bitmap
+import android.util.Log
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.launch
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import kotlinx.coroutines.launch
 
 
 class ScanScreenVM (
-/*    private val productDao: ProductDao,
-    private val supermarketDao: SupermarketDao*/
+    private val context: Context
+    /*private val productDao: ProductDao,
+      private val supermarketDao: SupermarketDao*/
 ): ViewModel() {
     var extractedText: String = ""
         private set
@@ -27,9 +28,10 @@ class ScanScreenVM (
             textRecognizer.process(image)
                 .addOnSuccessListener { visionText ->
                     extractedText = visionText.text // Extract and save the recognized text
+                    Log.d("TextRecognition", "Extracted Text: $extractedText") // Log the extracted text
                 }
                 .addOnFailureListener {
-                    // TODO: Handle error
+                    Log.d("debug", "Error analysing the image with ML")
                 }
         }
     }
