@@ -1,4 +1,4 @@
-package com.mcldev.comprainteligente.ui
+package com.mcldev.comprainteligente.ui.util
 
 import kotlinx.serialization.Serializable
 

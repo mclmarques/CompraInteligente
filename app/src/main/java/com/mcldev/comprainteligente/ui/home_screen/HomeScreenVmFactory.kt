@@ -1,4 +1,4 @@
-package com.mcldev.comprainteligente.ui
+package com.mcldev.comprainteligente.ui.home_screen
 
 
 import androidx.lifecycle.ViewModel

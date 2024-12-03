@@ -1,4 +1,4 @@
-package com.mcldev.comprainteligente.ui
+package com.mcldev.comprainteligente.ui.home_screen
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
@@ -23,7 +23,6 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -47,6 +46,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.mcldev.comprainteligente.ui.util.Screen
 
 
 @OptIn(ExperimentalMaterial3Api::class)

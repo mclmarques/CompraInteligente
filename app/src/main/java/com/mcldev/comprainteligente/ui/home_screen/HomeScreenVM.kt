@@ -1,10 +1,9 @@
-package com.mcldev.comprainteligente.ui
+package com.mcldev.comprainteligente.ui.home_screen
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mcldev.comprainteligente.data.Product
 import com.mcldev.comprainteligente.data.ProductDao
-import com.mcldev.comprainteligente.data.Supermarket
 import com.mcldev.comprainteligente.data.SupermarketDao
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow

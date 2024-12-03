@@ -1,4 +1,4 @@
-package com.mcldev.comprainteligente.ui
+package com.mcldev.comprainteligente.ui.scan_screen
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -35,5 +35,4 @@ class ScanScreenVM (
                 }
         }
     }
-
 }
