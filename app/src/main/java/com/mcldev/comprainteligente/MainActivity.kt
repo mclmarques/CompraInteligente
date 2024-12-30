@@ -4,7 +4,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.ViewModelProvider
@@ -17,14 +16,13 @@ import com.mcldev.comprainteligente.ui.home_screen.HomeScreenVM
 import com.mcldev.comprainteligente.ui.home_screen.HomeScreenVmFactory
 import com.mcldev.comprainteligente.ui.scan_screen.ScanScreen
 import com.mcldev.comprainteligente.ui.scan_screen.ScanScreenVM
-import com.mcldev.comprainteligente.ui.util.Screen
 import com.mcldev.comprainteligente.ui.theme.CompraInteligenteTheme
+import com.mcldev.comprainteligente.ui.util.Screen
 
 class MainActivity : ComponentActivity() {
     private val database: DataBase by lazy {
         Application.getDatabase()
     }
-    private val requestCameraPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -36,9 +34,7 @@ class MainActivity : ComponentActivity() {
             HomeScreenVmFactory(database.productDao(), database.supermarketDao())
         ).get(HomeScreenVM::class.java)
 
-        val scanScreenVM = ScanScreenVM(
-            context = this
-        )
+        val scanScreenVM = ScanScreenVM()
 
         /*lifecycleScope.launch {
             database.productDao().upsertProduct(Product(

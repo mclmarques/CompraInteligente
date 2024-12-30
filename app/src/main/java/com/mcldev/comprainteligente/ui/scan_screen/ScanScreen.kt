@@ -1,28 +1,35 @@
 package com.mcldev.comprainteligente.ui.scan_screen
 
-import android.Manifest
-import android.graphics.Bitmap
+import android.content.Context
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.os.Environment
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import com.mcldev.comprainteligente.ui.util.CameraPermissionHandler
-import com.mcldev.comprainteligente.ui.util.checkAndRequestPermission
 import java.io.File
 
 
@@ -33,20 +40,35 @@ fun ScanScreen(
     modifier: Modifier = Modifier
 ) {
     // States for image capture
-    var imageBitmap by remember { mutableStateOf<Bitmap?>(null) }
-    val imageUri = remember { mutableStateOf<Uri?>(null) }
-    val context = LocalContext.current
 
     // Camera launcher for capturing images
+    val context = LocalContext.current
+    var imageUri by remember { mutableStateOf<Uri?>(null) }
+    var isCameraError by remember { mutableStateOf(false) }
+
     val cameraLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.TakePicture()
     ) { isSuccess ->
         if (isSuccess) {
-            imageUri.value?.let { uri ->
-                val bitmap = BitmapFactory.decodeStream(context.contentResolver.openInputStream(uri))
-                imageBitmap = bitmap
-                viewModel.processImage(bitmap)
+            imageUri?.let { uri ->
+                val inputStream = context.contentResolver.openInputStream(uri)
+                val bitmap = BitmapFactory.decodeStream(inputStream)
+                inputStream?.close()
+                bitmap?.let { viewModel.processImage(it) }
+                navController.popBackStack() // Navigate back after a successful capture
             }
+        } else {
+            isCameraError = true
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        try {
+            val uri = context.createImageFile()
+            imageUri = uri
+            cameraLauncher.launch(uri)
+        } catch (e: Exception) {
+            isCameraError = true
         }
     }
 
@@ -73,79 +95,36 @@ fun ScanScreen(
                 )
             }
         }
-    }
-    // Permission handling and camera access
-    CameraPermissionHandler(
-        dialogTitle = "Camera Permission Needed",
-        dialogText = "Camera access is required to scan the receipt. Please grant permission.",
-        icon = Icons.Default.Info,
-        onDialogConfirmation = { /* Optional: Action if dialog is confirmed */ },
-        onPermissionResult = { isGranted ->
-            if (isGranted) {
-                // Launch camera if permission is granted
-                val uri = FileProvider.getUriForFile(
-                    context,
-                    "${context.packageName}.provider",
-                    File(context.cacheDir, "temp_image.jpg") // Temp file for image capture
-                )
-                imageUri.value = uri
-                cameraLauncher.launch(uri)
-            }
+        // Error message
+        if (isCameraError) {
+            Text(
+                text = "Camera app is not available or failed.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(16.dp)
+            )
         }
+    }
+}
+
+fun Context.createImageFile(): Uri {
+    val sharedPreferences = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+    var index = sharedPreferences.getInt("last_receipt_index", 0)
+    index++
+
+    val storageDir: File? = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+    if (storageDir != null && !storageDir.exists()) {
+        storageDir.mkdirs() // Ensure the directory exists
+    }
+    val newFile = File(storageDir, "receipt$index.jpg")
+
+    // Save the new index
+    sharedPreferences.edit().putInt("last_receipt_index", index).apply()
+    return androidx.core.content.FileProvider.getUriForFile(
+        this,
+        "${applicationContext.packageName}.provider",
+        newFile
     )
 }
 
-
-@Composable
-fun PermissionRequestUI(onRequestPermission: () -> Unit, onBack: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()) // Respect status bar height
-    ) {
-        Surface(
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 4.dp, // Add shadow/elevation for better visibility
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(8.dp) // Add padding around the button for spacing
-        ) {
-            IconButton(
-                onClick = { onBack() },
-                modifier = Modifier.size(40.dp) // Adjust size to match the circular shape
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack, // Back arrow icon
-                    contentDescription = "Go Back",
-                    tint = MaterialTheme.colorScheme.primary // Match the theme
-                )
-            }
-        }
-
-        // Main content
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp), // Add margins on the sides
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // Warning text
-            Text(
-                text = "Camera permission is required to scan the receipt.",
-                color = MaterialTheme.colorScheme.error, // Use error color for warning tone
-                style = MaterialTheme.typography.titleLarge.copy( // Bold and large text
-                    fontWeight = FontWeight.Bold
-                ),
-                modifier = Modifier.padding(bottom = 16.dp) // Add spacing below the text
-            )
-
-            // Permission button
-            Button(onClick = { onRequestPermission() }) {
-                Text("Grant Permission")
-            }
-        }
-    }
-}
 
