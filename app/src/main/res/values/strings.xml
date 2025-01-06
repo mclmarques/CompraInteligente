@@ -1,3 +1,14 @@
 <resources>
     <string name="app_name">Compra inteligente</string>
+    <string name="err_text_extraction">
+        <![CDATA[
+        <b>Oops! We couldn't read the text from your image.</b><br/>
+        This might happen if the image quality isn't good enough or if there was an issue processing it.<br/><br/>
+        Try these steps to fix it:<br/>
+        1. Restart the app and try again.<br/>
+        2. Make sure the text in the image is clear, well-lit, and easy to read.<br/>
+        3. Capture a new image and repeat the process.<br/><br/>
+        If the problem persists, feel free to contact support for help!
+        ]]>
+    </string>
 </resources>

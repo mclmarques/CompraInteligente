@@ -2,16 +2,17 @@ package com.mcldev.comprainteligente.ui.scan_screen
 
 import android.graphics.Bitmap
 import android.util.Log
+import androidx.core.content.ContextCompat.getString
 import androidx.lifecycle.ViewModel
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import com.mcldev.comprainteligente.R
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 
 class ScanScreenVM() : ViewModel() {
-
     // Extracted text state
     private val _extractedText = MutableStateFlow("")
     val extractedText: StateFlow<String> = _extractedText
@@ -19,10 +20,14 @@ class ScanScreenVM() : ViewModel() {
     // ML Kit Text Recognizer
     private val textRecognizer = TextRecognition.getClient(TextRecognizerOptions.Builder().build())
 
+    private val _processingState = MutableStateFlow<ProcessingState>(ProcessingState.Idle)
+    val processingState: StateFlow<ProcessingState> = _processingState
+
     /**
      * Process the image bitmap to extract text.
      */
     fun processImage(bitmap: Bitmap) {
+        _processingState.value = ProcessingState.Loading
         val image = InputImage.fromBitmap(bitmap, 0)
         textRecognizer.process(image)
             .addOnSuccessListener { visionText ->
@@ -30,6 +35,7 @@ class ScanScreenVM() : ViewModel() {
                 Log.d("TextRecognition", "Extracted Text: ${visionText.text}")
             }
             .addOnFailureListener {
+                _processingState.value = ProcessingState.Error(1)
                 Log.e("TextRecognition", "Error analyzing the image with ML", it)
             }
     }
@@ -38,6 +44,11 @@ class ScanScreenVM() : ViewModel() {
         super.onCleared()
         textRecognizer.close()
     }
+}
 
-
+sealed class ProcessingState {
+    object Idle : ProcessingState()
+    object Loading : ProcessingState()
+    object Complete : ProcessingState()
+    data class Error(val code: Short) : ProcessingState()
 }
