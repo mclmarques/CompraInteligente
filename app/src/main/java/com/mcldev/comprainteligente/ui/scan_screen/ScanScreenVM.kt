@@ -2,12 +2,11 @@ package com.mcldev.comprainteligente.ui.scan_screen
 
 import android.graphics.Bitmap
 import android.util.Log
-import androidx.core.content.ContextCompat.getString
 import androidx.lifecycle.ViewModel
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
-import com.mcldev.comprainteligente.R
+import com.mcldev.comprainteligente.ui.util.ErrorCodes
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -35,9 +34,16 @@ class ScanScreenVM() : ViewModel() {
                 Log.d("TextRecognition", "Extracted Text: ${visionText.text}")
             }
             .addOnFailureListener {
-                _processingState.value = ProcessingState.Error(1)
-                Log.e("TextRecognition", "Error analyzing the image with ML", it)
+                _processingState.value = ProcessingState.Error(ErrorCodes.TEXT_EXTRACTION_ERROR)
             }
+    }
+
+    fun cameraLaunchFault() {
+        _processingState.value = ProcessingState.Error(ErrorCodes.CAMERA_ERROR)
+    }
+    fun storgeFault() {
+        _processingState.value = ProcessingState.Error(ErrorCodes.DATA_SAVE_ERROR)
+
     }
 
     override fun onCleared() {
@@ -50,5 +56,5 @@ sealed class ProcessingState {
     object Idle : ProcessingState()
     object Loading : ProcessingState()
     object Complete : ProcessingState()
-    data class Error(val code: Short) : ProcessingState()
+    data class Error(val code: ErrorCodes) : ProcessingState()
 }

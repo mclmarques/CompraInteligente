@@ -1,14 +1,37 @@
 <resources>
     <string name="app_name">Compra inteligente</string>
-    <string name="err_text_extraction">
-        <![CDATA[
-        <b>Oops! We couldn't read the text from your image.</b><br/>
-        This might happen if the image quality isn't good enough or if there was an issue processing it.<br/><br/>
-        Try these steps to fix it:<br/>
-        1. Restart the app and try again.<br/>
-        2. Make sure the text in the image is clear, well-lit, and easy to read.<br/>
-        3. Capture a new image and repeat the process.<br/><br/>
-        If the problem persists, feel free to contact support for help!
-        ]]>
+    <string name="err_launch_camera_title">
+        Oops! Camera app is not available or failed.
     </string>
+    <string name="err_launch_camera">
+        This is likely because the camera app is disabled. You can enable it in the settings or install another camera app.
+
+    </string>
+    <string name="launch_settings">Open Settings</string>
+    <string name="err_text_extraction_title">
+        Oops! We couldn\'t read the text from your image.
+
+    </string>
+    <string name="err_text_extraction">
+       This might happen if the image quality isn\'t good enough or if there was an issue processing it.\n
+        Try these steps to fix it:\n\n
+        1. Restart the app and try again.\n
+        2. Make sure the text in the image is clear, well-lit, and easy to read.\n
+        3. Capture a new image and repeat the process.\n
+        If the problem persists, feel free to contact support for help!\n
+
+    </string>
+    <string name="err_saving_data_title">Error Saving Receipt</string>
+    <string name="err_saving_data">
+        We "couldn't" save your receipt and its data to your "phone's" storage.\n This could be due to one of the following reasons:\n
+        - Your phone may be out of storage space\n
+        - There may be an unexpected issue with the storage system.\n\n
+        Try these steps to fix the issue:\n
+        1. Check your "phone's" storage and free up space if needed.\n
+        2. Restart the app and try saving again.\n
+        3. If the problem persists, restart your phone\n\n
+        If none of these steps worked, feel free to contact support for help
+    </string>
+    <string name="processing">Processing the image!</string>
+
 </resources>
