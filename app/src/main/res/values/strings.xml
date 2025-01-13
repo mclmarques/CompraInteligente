@@ -33,5 +33,7 @@
         If none of these steps worked, feel free to contact support for help
     </string>
     <string name="processing">Processing the image!</string>
+    <string name="err_unsupported_title">Oops! This app might not work here</string>
+    <string name="err_unsupported">This app needs a bit more power to run smoothly.\nThe app requires at least 2GB of RAM to be able to function.</string>
 
 </resources>

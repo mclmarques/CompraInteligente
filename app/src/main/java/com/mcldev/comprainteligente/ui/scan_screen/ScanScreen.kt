@@ -1,5 +1,7 @@
 package com.mcldev.comprainteligente.ui.scan_screen
 
+import android.app.Activity
+import android.app.Activity.RESULT_OK
 import android.content.Context
 import android.content.Intent
 import android.graphics.BitmapFactory
@@ -7,6 +9,7 @@ import android.net.Uri
 import android.os.Environment
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -46,6 +49,11 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions
+import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions.RESULT_FORMAT_JPEG
+import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions.SCANNER_MODE_FULL
+import com.google.mlkit.vision.documentscanner.GmsDocumentScanning
+import com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult
 import com.mcldev.comprainteligente.R
 import com.mcldev.comprainteligente.ui.util.ErrorCodes
 import java.io.File
@@ -57,36 +65,44 @@ fun ScanScreen(
     navController: NavHostController,
     modifier: Modifier = Modifier
 ) {
-
-    // Camera launcher for capturing images
     val context = LocalContext.current
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     val processingState by viewModel.processingState.collectAsState()
-
-    val cameraLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.TakePicture()
-    ) { isSuccess ->
-        if (isSuccess) {
-            imageUri?.let { uri ->
-                val inputStream = context.contentResolver.openInputStream(uri)
+    val options = GmsDocumentScannerOptions.Builder()
+        .setGalleryImportAllowed(true)
+        .setPageLimit(1)
+        .setResultFormats(RESULT_FORMAT_JPEG)
+        .setScannerMode(SCANNER_MODE_FULL)
+        .build()
+    val scanner = GmsDocumentScanning.getClient(options)
+    val scannerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartIntentSenderForResult(),
+        onResult = {
+            if (it.resultCode == RESULT_OK) {
+                val result = GmsDocumentScanningResult.fromActivityResultIntent(it.data)
+                if (result != null) {
+                    result.getPages()?.let { pages ->
+                        imageUri = pages.get(0).getImageUri()
+                    }
+                }
+            }
+            if(imageUri != null) {
+                val inputStream = context.contentResolver.openInputStream(imageUri!!)
                 val bitmap = BitmapFactory.decodeStream(inputStream)
                 inputStream?.close()
                 bitmap?.let { viewModel.processImage(it) }
             }
-        } else {
-            viewModel.cameraLaunchFault()
-        }
-    }
+        })
 
     //Launches camera upon opening the screen
     LaunchedEffect(Unit) {
-        try {
-            val uri = context.createImageFile()
-            imageUri = uri
-            cameraLauncher.launch(uri)
-        } catch (e: Exception) {
-            viewModel.storgeFault()
-        }
+        scanner.getStartScanIntent(context as Activity)
+            .addOnSuccessListener { intentSender ->
+                scannerLauncher.launch(IntentSenderRequest.Builder(intentSender).build())
+            }
+            .addOnFailureListener {
+
+            }
     }
 
     when (processingState) {
@@ -183,8 +199,9 @@ fun ScanScreen(
                         color = MaterialTheme.colorScheme.secondary,
                         trackColor = MaterialTheme.colorScheme.surfaceVariant,
                     )
+                    Text(context.getString(R.string.processing))
+
                 }
-                Text(context.getString(R.string.processing))
             }
         }
     }

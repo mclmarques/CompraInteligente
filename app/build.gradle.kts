@@ -53,6 +53,7 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.activity.ktx)
     implementation(libs.androidx.fragment.compose)
+    implementation(libs.play.services.tflite.gpu)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -82,16 +83,13 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
 
     //ML kit for text recognition
+    // LiteRT dependencies for Google Play services
+    implementation(libs.play.services.tflite.java)
+    // Optional: include LiteRT Support Library
+    implementation(libs.play.services.tflite.support)
 
-    // To recognize Latin script
-    implementation(libs.text.recognition)
-    // To recognize Chinese script
-    implementation (libs.text.recognition.chinese)
-    // To recognize Devanagari script
-    implementation(libs.text.recognition.devanagari)
-    // To recognize Japanese script
-    implementation(libs.text.recognition.japanese)
-    // To recognize Korean script
-    implementation(libs.text.recognition.korean)
+
+    //Scanner utility ML
+    implementation(libs.play.services.mlkit.document.scanner)
 
 }
