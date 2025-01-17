@@ -11,18 +11,9 @@ activityCompose = "1.9.3"
 composeBom = "2024.12.01"
 material3 = "1.3.1"
 playServicesMlkitDocumentScanner = "16.0.0-beta1"
-playServicesTfliteGpuVersion = "16.2.0"
-playServicesTfliteJava = "16.4.0"
-playServicesTfliteSupport = "16.4.0"
 roomRuntime = "2.6.1"
 composeNavigation = "2.8.5"
 serialization = "1.6.3"
-textRecognition = "16.0.1"
-textRecognitionChinese = "16.0.1"
-textRecognitionDevanagari = "16.0.1"
-textRecognitionJapanese = "16.0.1"
-textRecognitionKorean = "16.0.1"
-playServicesTfliteGpu = "16.4.0"
 
 [libraries]
 androidx-activity-ktx = { module = "androidx.activity:activity-ktx", version.ref = "activityCompose" }
@@ -50,15 +41,6 @@ material3 = { module = "androidx.compose.material3:material3", version.ref = "ma
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization"}
 navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "composeNavigation" }
 play-services-mlkit-document-scanner = { module = "com.google.android.gms:play-services-mlkit-document-scanner", version.ref = "playServicesMlkitDocumentScanner" }
-play-services-tflite-gpu-v1620 = { module = "com.google.android.gms:play-services-tflite-gpu", version.ref = "playServicesTfliteGpuVersion" }
-play-services-tflite-java = { module = "com.google.android.gms:play-services-tflite-java", version.ref = "playServicesTfliteJava" }
-play-services-tflite-support = { module = "com.google.android.gms:play-services-tflite-support", version.ref = "playServicesTfliteSupport" }
-text-recognition = { module = "com.google.mlkit:text-recognition", version.ref = "textRecognition" }
-text-recognition-chinese = { module = "com.google.mlkit:text-recognition-chinese", version.ref = "textRecognitionChinese" }
-text-recognition-devanagari = { module = "com.google.mlkit:text-recognition-devanagari", version.ref = "textRecognitionDevanagari" }
-text-recognition-japanese = { module = "com.google.mlkit:text-recognition-japanese", version.ref = "textRecognitionJapanese" }
-text-recognition-korean = { module = "com.google.mlkit:text-recognition-korean", version.ref = "textRecognitionKorean" }
-play-services-tflite-gpu = { group = "com.google.android.gms", name = "play-services-tflite-gpu", version.ref = "playServicesTfliteGpu" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

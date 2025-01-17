@@ -8,8 +8,21 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -22,47 +35,46 @@ import com.mcldev.comprainteligente.ui.scan_screen.ScanScreen
 import com.mcldev.comprainteligente.ui.scan_screen.ScanScreenVM
 import com.mcldev.comprainteligente.ui.theme.CompraInteligenteTheme
 import com.mcldev.comprainteligente.ui.util.Screen
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.DialogProperties
-import com.google.android.gms.tasks.Task
-import com.google.android.gms.tflite.gpu.support.TfLiteGpu
-import com.google.android.gms.tflite.java.TfLite
-import org.tensorflow.lite.InterpreterApi
-import org.tensorflow.lite.InterpreterApi.Options.TfLiteRuntime
+import java.io.File
+import java.io.FileOutputStream
 
 class MainActivity : ComponentActivity() {
     private val database: DataBase by lazy {
         Application.getDatabase()
     }
-    //ML stuff
-    val initializeTask: Task<Void> by lazy { TfLite.initialize(this) }
-    private lateinit var interpreter: InterpreterApi
-    val useGpuTask = TfLiteGpu.isGpuDelegateAvailable(context)
 
-
-    fun initializeAi() {
-        initializeTask.addOnSuccessListener {
-            val interpreterOption =
-                InterpreterApi.Options().setRuntime(TfLiteRuntime.FROM_SYSTEM_ONLY)
-            interpreter = InterpreterApi.create(
-                modelBuffer,
-                interpreterOption
-            )}
-            .addOnFailureListener { e ->
-                Log.e("Interpreter", "Cannot initialize interpreter", e)
+    /**
+     * This methods creates the /tessdata directory and populate it with the data provided from the
+     * assets folder
+     * @return: String containning the PATH to the tesseract data folder or NULL if it fails
+     */
+    private fun createTessFolder(): String? {
+        val path = getExternalFilesDir(null)?.absolutePath + "/tesseract"
+        val tessDataDirectory = File("$path/tessdata")
+        if (!tessDataDirectory.exists() && !tessDataDirectory.mkdirs()) {
+            Log.e("Tesseract", "Failed to create Tesseract directory")
+            return null
+        }
+        val tessDataFile = File(tessDataDirectory, "por.traineddata")
+        if (!tessDataFile.exists()) {
+            try {
+                val inputStream = assets.open("tessdata/por.traineddata")
+                val outputStream = FileOutputStream(tessDataFile)
+                val buffer = ByteArray(1024)
+                var length = inputStream.read(buffer)
+                while (length > 0) {
+                    outputStream.write(buffer, 0, length)
+                    length = inputStream.read(buffer)
+                }
+                inputStream.close()
+                outputStream.close()
+                Log.i("Tesseract", "por.traineddata copied to device")
+            } catch (e: Exception) {
+                Log.e("Tesseract", "Error copying por.traineddata: ", e)
+                return null
             }
+        }
+        return path;
     }
 
 
@@ -75,8 +87,6 @@ class MainActivity : ComponentActivity() {
             HomeScreenVmFactory(database.productDao(), database.supermarketDao())
         ).get(HomeScreenVM::class.java)
 
-        val scanScreenVM = ScanScreenVM()
-
         /*lifecycleScope.launch {
             database.productDao().upsertProduct(Product(
                 id = 3,
@@ -86,7 +96,6 @@ class MainActivity : ComponentActivity() {
                 supermarketId = 1))
 
         }*/
-
         setContent {
             CompraInteligenteTheme {
                 Surface {
@@ -94,25 +103,47 @@ class MainActivity : ComponentActivity() {
                     val actManager = getSystemService(ACTIVITY_SERVICE) as ActivityManager
                     val memInfo = ActivityManager.MemoryInfo()
                     actManager.getMemoryInfo(memInfo)
-                    val totalMemory= memInfo.totalMem.toDouble()/(1024*1024*1024)
-                    if(totalMemory < 2 ) {
+                    val totalMemory = memInfo.totalMem.toDouble() / (1024 * 1024 * 1024)
+                    val path = createTessFolder()
+                    //Checks requirements and them launches the app
+                    if (totalMemory < 2) {
                         AlertDialog(
-                            onDismissRequest = {},
-                            onConfirmation = {},
+                            onConfirmation = {finish()},
                             dialogTitle = stringResource(R.string.err_unsupported_title),
                             dialogText = stringResource(R.string.err_unsupported),
                             icon = R.drawable.warning_ic
                         )
                     }
-                    val navController = rememberNavController()
-                    NavHost(
-                        navController = navController,
-                        startDestination = Screen.Home.route
-                    ) {
-                        composable(Screen.Home.route) { HomeScreen(modifier = Modifier, viewModel = homeScreenViewModel, navController = navController) }
-                        composable(Screen.Scan.route) { ScanScreen(modifier = Modifier, viewModel = scanScreenVM, navController = navController) }
-                        //composable(Screen.Receipts.route) { ReceiptsScreen(modifier = Modifier, viewModel = homeScreenViewModel, navController = navController) }
-                        //composable(Screen.Settings.route) { SettingsScreen(modifier = Modifier, viewModel = homeScreenViewModel, navController = navController) }
+                    else  if(path == null) {
+                        AlertDialog(
+                            onConfirmation = {finish()},
+                            dialogTitle = stringResource(R.string.err_storage_title),
+                            dialogText = stringResource(R.string.err_storage),
+                            icon = R.drawable.warning_ic
+                        )
+                    } else {
+                        val navController = rememberNavController()
+                        NavHost(
+                            navController = navController,
+                            startDestination = Screen.Home.route
+                        ) {
+                            composable(Screen.Home.route) {
+                                HomeScreen(
+                                    modifier = Modifier,
+                                    viewModel = homeScreenViewModel,
+                                    navController = navController
+                                )
+                            }
+                            composable(Screen.Scan.route) {
+                                ScanScreen(
+                                    modifier = Modifier,
+                                    viewModel = ScanScreenVM(path),
+                                    navController = navController
+                                )
+                            }
+                            //composable(Screen.Receipts.route) { ReceiptsScreen(modifier = Modifier, viewModel = homeScreenViewModel, navController = navController) }
+                            //composable(Screen.Settings.route) { SettingsScreen(modifier = Modifier, viewModel = homeScreenViewModel, navController = navController) }
+                        }
                     }
                 }
             }
@@ -121,13 +152,13 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     fun AlertDialog(
-        onDismissRequest: () -> Unit,
         onConfirmation: () -> Unit,
         dialogTitle: String,
         dialogText: String,
         icon: Int,
     ) {
         AlertDialog(
+
             icon = {
                 Icon(
                     painter = painterResource(icon),
@@ -150,12 +181,10 @@ class MainActivity : ComponentActivity() {
             text = {
                 Text(
                     text = dialogText,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp) // Reduce padding slightly
+
                 )
             },
-            onDismissRequest = {
-                onDismissRequest()
-            },
+            onDismissRequest = {},
             confirmButton = {
                 TextButton(
                     onClick = {

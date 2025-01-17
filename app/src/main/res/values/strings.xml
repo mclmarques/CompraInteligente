@@ -35,5 +35,9 @@
     <string name="processing">Processing the image!</string>
     <string name="err_unsupported_title">Oops! This app might not work here</string>
     <string name="err_unsupported">This app needs a bit more power to run smoothly.\nThe app requires at least 2GB of RAM to be able to function.</string>
+    <string name="err_storage_title">Oops! Something went wrong!</string>
+    <string name="err_storage">This apps needs to save a little file on this device to function properly, but wasn\'t able to.
+        \nThis might be because your phone is running low on storage space.
+        \n\nTry freeing up some space by deleting unused files or photos, then try saving again.</string>
 
 </resources>

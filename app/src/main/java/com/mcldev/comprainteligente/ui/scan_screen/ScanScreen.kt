@@ -68,6 +68,9 @@ fun ScanScreen(
     val context = LocalContext.current
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     val processingState by viewModel.processingState.collectAsState()
+    val contents by viewModel.contents.collectAsState()
+
+    //Scanner stuff
     val options = GmsDocumentScannerOptions.Builder()
         .setGalleryImportAllowed(true)
         .setPageLimit(1)
@@ -107,7 +110,7 @@ fun ScanScreen(
 
     when (processingState) {
         ProcessingState.Complete -> {
-            ListOfItems(navController)
+            ListOfItems(navController, contents?:"Fault!")
         }
 
         is ProcessingState.Error -> {
@@ -232,31 +235,9 @@ fun Context.createImageFile(): Uri {
 @Composable
 fun ListOfItems(
     navController: NavHostController,
+    contents: String
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .statusBarsPadding()
-    ) {
-        // Back button
-        Surface(
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 4.dp,
-            modifier = Modifier.padding(8.dp)
-        ) {
-            IconButton(
-                onClick = { navController.popBackStack() },
-                modifier = Modifier.size(40.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Go Back",
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-        }
-    }
+    Text(text = contents)
 }
 
 @Composable

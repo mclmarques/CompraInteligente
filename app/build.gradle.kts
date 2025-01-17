@@ -39,6 +39,7 @@ android {
     }
     buildFeatures {
         compose = true
+        mlModelBinding = true
     }
 }
 
@@ -53,7 +54,6 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.activity.ktx)
     implementation(libs.androidx.fragment.compose)
-    implementation(libs.play.services.tflite.gpu)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -83,12 +83,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
 
     //ML kit for text recognition
-    // LiteRT dependencies for Google Play services
-    implementation(libs.play.services.tflite.java)
-    // Optional: include LiteRT Support Library
-    implementation(libs.play.services.tflite.support)
-
-
+    implementation("cz.adaptech.tesseract4android:tesseract4android-openmp:4.8.0")
     //Scanner utility ML
     implementation(libs.play.services.mlkit.document.scanner)
 

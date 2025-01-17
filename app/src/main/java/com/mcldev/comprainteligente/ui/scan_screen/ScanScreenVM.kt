@@ -1,31 +1,52 @@
 package com.mcldev.comprainteligente.ui.scan_screen
 
-import android.content.Context
 import android.graphics.Bitmap
 import androidx.lifecycle.ViewModel
-import com.google.android.gms.tasks.Task
-import com.google.android.gms.tflite.java.TfLite
 import com.mcldev.comprainteligente.ui.util.ErrorCodes
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import org.tensorflow.lite.InterpreterApi
-import org.tensorflow.lite.InterpreterApi.Options.TfLiteRuntime
+import com.googlecode.tesseract.android.TessBaseAPI
+import android.util.Log
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.launch
 
 
-class ScanScreenVM() : ViewModel() {
+class ScanScreenVM(private val path: String?) : ViewModel() {
     private val _extractedText = MutableStateFlow("")
     val extractedText: StateFlow<String> = _extractedText
 
     private val _processingState = MutableStateFlow<ProcessingState>(ProcessingState.Idle)
     val processingState: StateFlow<ProcessingState> = _processingState
 
+    private val _contents = MutableStateFlow<String?>(null)
+    val contents: StateFlow<String?> = _contents
 
+
+    //AI stuff (Tesserat)
+    private var tessBaseAPI: TessBaseAPI? = null
+
+    private fun performOCR(image: Bitmap): String? {
+        // setup tessBaseApi
+        tessBaseAPI = TessBaseAPI()
+        tessBaseAPI!!.init(path, "por") // or other languages
+        Log.i("Tesseract", "Tesseract engine initialized successfully")
+        tessBaseAPI?.setImage(image)
+        tessBaseAPI?.setPageSegMode(TessBaseAPI.PageSegMode.PSM_AUTO) // optional config
+        val recognizedText = tessBaseAPI?.utF8Text
+        tessBaseAPI?.recycle() // keep engine alive for multiple uses
+        return recognizedText
+    }
     /**
      * Process the image bitmap to extract text.
      */
     fun processImage(bitmap: Bitmap) {
         _processingState.value = ProcessingState.Loading
+        viewModelScope.launch {
+            _contents.value = performOCR(bitmap)?:"Fault"
+        }
 
+        Log.d("debug", _contents?.value?:"Fault!")
+        _processingState.value = ProcessingState.Complete
     }
 
     fun cameraLaunchFault() {
