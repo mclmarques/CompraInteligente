@@ -1,19 +1,37 @@
 package com.mcldev.comprainteligente.ui.scan_screen
 
+import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.net.Uri
+import android.os.Environment
+import android.util.Log
+import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.google.mlkit.vision.documentscanner.GmsDocumentScanner
+import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions
+import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions.RESULT_FORMAT_JPEG
+import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions.SCANNER_MODE_FULL
+import com.google.mlkit.vision.documentscanner.GmsDocumentScanning
+import com.googlecode.tesseract.android.TessBaseAPI
 import com.mcldev.comprainteligente.ui.util.ErrorCodes
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import com.googlecode.tesseract.android.TessBaseAPI
-import android.util.Log
-import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.IOException
 
-
+/*
+TODO:
+1. Configuration changes re call the scanner, even after the process been completed
+2. Remove black screen while processing and use the proper screen
+3. post-process the text
+ */
 class ScanScreenVM(private val path: String?) : ViewModel() {
-    private val _extractedText = MutableStateFlow("")
-    val extractedText: StateFlow<String> = _extractedText
+    private var imageUri: Uri? = null
 
     private val _processingState = MutableStateFlow<ProcessingState>(ProcessingState.Idle)
     val processingState: StateFlow<ProcessingState> = _processingState
@@ -22,48 +40,128 @@ class ScanScreenVM(private val path: String?) : ViewModel() {
     val contents: StateFlow<String?> = _contents
 
 
-    //AI stuff (Tesserat)
-    private var tessBaseAPI: TessBaseAPI? = null
-
-    private fun performOCR(image: Bitmap): String? {
-        // setup tessBaseApi
-        tessBaseAPI = TessBaseAPI()
-        tessBaseAPI!!.init(path, "por") // or other languages
-        Log.i("Tesseract", "Tesseract engine initialized successfully")
-        tessBaseAPI?.setImage(image)
-        tessBaseAPI?.setPageSegMode(TessBaseAPI.PageSegMode.PSM_AUTO) // optional config
-        val recognizedText = tessBaseAPI?.utF8Text
-        tessBaseAPI?.recycle() // keep engine alive for multiple uses
-        return recognizedText
+    fun prepareScanner(): GmsDocumentScanner {
+        //Scanner stuff
+        val options = GmsDocumentScannerOptions.Builder()
+            .setGalleryImportAllowed(true)
+            .setPageLimit(1)
+            .setResultFormats(RESULT_FORMAT_JPEG)
+            .setScannerMode(SCANNER_MODE_FULL)
+            .build()
+        return GmsDocumentScanning.getClient(options)
     }
+
     /**
-     * Process the image bitmap to extract text.
+     * TOOD: Fix the issue causing the processImage emthod not wait for the loadAndSaveBitmap method to end
      */
-    fun processImage(bitmap: Bitmap) {
+    fun processImage(context: Context, uri: Uri) {
         _processingState.value = ProcessingState.Loading
-        viewModelScope.launch {
-            _contents.value = performOCR(bitmap)?:"Fault"
-        }
+        if(uri.path != null) {
+            imageUri = uri
+            var bitmap: Bitmap? = null
+            viewModelScope.launch() {
+                viewModelScope.launch(Dispatchers.IO) {
+                    bitmap = loadAndSaveBitmap(
+                        uri = uri,
+                        context = context
+                    )
+                }.join()
+                if (bitmap != null) {
+                    _contents.value = performOCR(bitmap!!)
+                }
+                else {
+                    ocrFault()
+                    Log.d("debug", "Fault extracting the image!")
+                }
+            }
+        } else Log.d("debug", _contents.value?:"Fault! Image URI was null")
 
-        Log.d("debug", _contents?.value?:"Fault!")
-        _processingState.value = ProcessingState.Complete
     }
 
+    private suspend fun loadAndSaveBitmap(uri: Uri, context: Context): Bitmap? {
+        return withContext(Dispatchers.IO) {
+            val bitmap: Bitmap?
+            val inputStream = context.contentResolver.openInputStream(uri)
+            bitmap = BitmapFactory.decodeStream(inputStream)
+            inputStream?.close()
+
+            // Save the bitmap to a file
+            val saveUri = context.createImageFile()
+            try {
+                context.contentResolver.openOutputStream(saveUri)?.use { outputStream ->
+                    bitmap?.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
+                }
+                Log.d("debug", "Image saved successfully at $saveUri")
+            } catch (e: IOException) {
+                Log.e("debug", "Error saving image: ${e.message}")
+            }
+
+            bitmap // Return the loaded Bitmap
+        }
+    }
+
+
+    /**
+     * @param image: the bitmap to extract the text from
+     * @return: extracted text from the image
+     * The method uses the tesserat API to extract the text. IT ASSUMES THE IMAGE IS ALREADY PREPROCESSED
+     */
+    private suspend fun performOCR(image: Bitmap): String? {
+        return withContext(Dispatchers.Default) {
+            val tessBaseAPI: TessBaseAPI?
+            // setup tessBaseApi
+            tessBaseAPI = TessBaseAPI()
+            tessBaseAPI.init(path, "por") // or other languages
+            Log.i("Tesseract", "Tesseract engine initialized successfully")
+            tessBaseAPI.setImage(image)
+            tessBaseAPI.setPageSegMode(TessBaseAPI.PageSegMode.PSM_AUTO) // optional config
+            val recognizedText = tessBaseAPI.utF8Text
+            tessBaseAPI.recycle() // keep engine alive for multiple uses
+            recognizedText
+        }
+    }
+
+    /**
+     * Method to trigger a camera error launch and make the UI show the appropriate err code
+     */
     fun cameraLaunchFault() {
         _processingState.value = ProcessingState.Error(ErrorCodes.CAMERA_ERROR)
     }
-    fun storgeFault() {
+    /**
+     * Method to trigger a storage error launch and make the UI show the appropriate err code
+     */
+    fun storageFault() {
         _processingState.value = ProcessingState.Error(ErrorCodes.DATA_SAVE_ERROR)
     }
 
-    override fun onCleared() {
-        super.onCleared()
+    fun ocrFault() {
+        _processingState.value = ProcessingState.Error(ErrorCodes.TEXT_EXTRACTION_ERROR)
     }
 }
 
+fun Context.createImageFile(): Uri {
+    val sharedPreferences = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+    var index = sharedPreferences.getInt("last_receipt_index", 0)
+    index++
+
+    val storageDir: File? = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+    if (storageDir != null && !storageDir.exists()) {
+        storageDir.mkdirs() // Ensure the directory exists
+    }
+    val newFile = File(storageDir, "receipt$index.jpg")
+
+    // Save the new index
+    sharedPreferences.edit().putInt("last_receipt_index", index).apply()
+    return FileProvider.getUriForFile(
+        this,
+        "${applicationContext.packageName}.provider",
+        newFile
+    )
+}
+
 sealed class ProcessingState {
-    object Idle : ProcessingState()
-    object Loading : ProcessingState()
-    object Complete : ProcessingState()
+    data object Idle : ProcessingState()
+    data object Loading : ProcessingState()
+    data object Complete : ProcessingState()
     data class Error(val code: ErrorCodes) : ProcessingState()
 }

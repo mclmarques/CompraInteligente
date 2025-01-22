@@ -2,12 +2,9 @@ package com.mcldev.comprainteligente.ui.scan_screen
 
 import android.app.Activity
 import android.app.Activity.RESULT_OK
-import android.content.Context
 import android.content.Intent
-import android.graphics.BitmapFactory
-import android.net.Uri
-import android.os.Environment
 import android.provider.Settings
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -36,27 +33,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions
-import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions.RESULT_FORMAT_JPEG
-import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions.SCANNER_MODE_FULL
-import com.google.mlkit.vision.documentscanner.GmsDocumentScanning
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult
 import com.mcldev.comprainteligente.R
 import com.mcldev.comprainteligente.ui.util.ErrorCodes
-import java.io.File
 
 
 @Composable
@@ -66,170 +55,59 @@ fun ScanScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    var imageUri by remember { mutableStateOf<Uri?>(null) }
     val processingState by viewModel.processingState.collectAsState()
     val contents by viewModel.contents.collectAsState()
-
     //Scanner stuff
-    val options = GmsDocumentScannerOptions.Builder()
-        .setGalleryImportAllowed(true)
-        .setPageLimit(1)
-        .setResultFormats(RESULT_FORMAT_JPEG)
-        .setScannerMode(SCANNER_MODE_FULL)
-        .build()
-    val scanner = GmsDocumentScanning.getClient(options)
     val scannerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartIntentSenderForResult(),
         onResult = {
             if (it.resultCode == RESULT_OK) {
                 val result = GmsDocumentScanningResult.fromActivityResultIntent(it.data)
                 if (result != null) {
-                    result.getPages()?.let { pages ->
-                        imageUri = pages.get(0).getImageUri()
+                    result.pages?.let { pages ->
+                        viewModel.processImage(context = context, uri = pages[0].imageUri)
                     }
+                } else {
+                    viewModel.ocrFault()
+                    Log.e("debug", "Scanner returnned null")
                 }
-            }
-            if(imageUri != null) {
-                val inputStream = context.contentResolver.openInputStream(imageUri!!)
-                val bitmap = BitmapFactory.decodeStream(inputStream)
-                inputStream?.close()
-                bitmap?.let { viewModel.processImage(it) }
+            } else {
+                viewModel.cameraLaunchFault()
+                Log.e("debug", "Scanner failed to open")
             }
         })
-
-    //Launches camera upon opening the screen
     LaunchedEffect(Unit) {
-        scanner.getStartScanIntent(context as Activity)
+        viewModel.prepareScanner().getStartScanIntent(context as Activity)
             .addOnSuccessListener { intentSender ->
                 scannerLauncher.launch(IntentSenderRequest.Builder(intentSender).build())
             }
             .addOnFailureListener {
+                viewModel.cameraLaunchFault()
+                Log.e("debug", "Scanner failed to open")
 
             }
+
     }
-
-    when (processingState) {
-        ProcessingState.Complete -> {
-            ListOfItems(navController, contents?:"Fault!")
-        }
-
-        is ProcessingState.Error -> {
-            val errorCode = (processingState as ProcessingState.Error).code
-            ErrorScreen(
-                navController = navController,
-                errCode = errorCode
-            )
-        }
-
-        ProcessingState.Idle -> {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .statusBarsPadding()
-            ) {
-                // Back button
-                Surface(
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 4.dp,
-                    modifier = Modifier.padding(8.dp)
-                ) {
-                    IconButton(
-                        onClick = { /*navController.popBackStack()*/ },
-                        modifier = Modifier.size(40.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Go Back",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-
-                Column(
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .statusBarsPadding()
-                        .padding(horizontal = 16.dp)
-                        .fillMaxHeight()
-                ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.width(64.dp),
-                        color = MaterialTheme.colorScheme.secondary,
-                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                    )
-                }
+    if(processingState is ProcessingState.Error){
+        val errorCode = (processingState as ProcessingState.Error).code
+        ErrorScreen(
+            navController = navController,
+            errCode = errorCode
+        )
+    }
+    else {
+        when(contents) {
+            null -> {
+                LoadingScreen()
             }
-        }
-        ProcessingState.Loading -> {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .statusBarsPadding()
-            ) {
-                // Back button
-                Surface(
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 4.dp,
-                    modifier = Modifier.padding(8.dp)
-                ) {
-                    IconButton(
-                        onClick = { /*navController.popBackStack()*/ },
-                        modifier = Modifier.size(40.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Go Back",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-
-                Column(
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .statusBarsPadding()
-                        .padding(horizontal = 16.dp)
-                        .fillMaxHeight()
-                ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.width(64.dp),
-                        color = MaterialTheme.colorScheme.secondary,
-                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                    )
-                    Text(context.getString(R.string.processing))
-
-                }
+            else -> {
+                ListOfItems(
+                    navController = navController,
+                    contents = contents!!
+                )
             }
         }
     }
-}
-
-
-
-fun Context.createImageFile(): Uri {
-    val sharedPreferences = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-    var index = sharedPreferences.getInt("last_receipt_index", 0)
-    index++
-
-    val storageDir: File? = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
-    if (storageDir != null && !storageDir.exists()) {
-        storageDir.mkdirs() // Ensure the directory exists
-    }
-    val newFile = File(storageDir, "receipt$index.jpg")
-
-    // Save the new index
-    sharedPreferences.edit().putInt("last_receipt_index", index).apply()
-    return FileProvider.getUriForFile(
-        this,
-        "${applicationContext.packageName}.provider",
-        newFile
-    )
 }
 
 @Composable
@@ -244,13 +122,13 @@ fun ListOfItems(
 fun ErrorScreen(
     navController: NavHostController,
     errCode: ErrorCodes
-    ){
+) {
     val context = LocalContext.current
     Column(
         modifier = Modifier
             .fillMaxSize()
             .statusBarsPadding(),
-            //.padding(32.dp), // Add padding to avoid edge-to-edge text
+        //.padding(32.dp), // Add padding to avoid edge-to-edge text
         //verticalArrangement = Arrangement.Center
     ) {
         // Back button
@@ -271,13 +149,15 @@ fun ErrorScreen(
                 )
             }
         }
-        Column (
-            modifier = Modifier.padding(horizontal = 16.dp).fillMaxHeight(),
+        Column(
+            modifier = Modifier
+                .padding(horizontal = 16.dp)
+                .fillMaxHeight(),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
-        ){
+        ) {
             // Error title
-            val title = context.getString(errCode.titleResId)
+            val title = stringResource(errCode.titleResId)
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodyMedium.copy(
@@ -294,7 +174,7 @@ fun ErrorScreen(
 
             // Error message (if available)
             errCode.messageResId?.let { messageResId ->
-                val message = context.getString(messageResId)
+                val message = stringResource(messageResId)
                 Text(
                     text = message,
                     modifier = Modifier.fillMaxWidth()
@@ -302,7 +182,7 @@ fun ErrorScreen(
             }
 
             Spacer(modifier = Modifier.height(64.dp))
-            if(errCode.errCode == 1) {
+            if (errCode.errCode == 1) {
                 Button(
                     onClick = {
                         val intent = Intent(Settings.ACTION_SETTINGS)
@@ -313,6 +193,53 @@ fun ErrorScreen(
                     Text("Open Settings")
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun LoadingScreen() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+    ) {
+        // Back button
+        Surface(
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 4.dp,
+            modifier = Modifier.padding(8.dp)
+        ) {
+            IconButton(
+                onClick = { /*navController.popBackStack()*/ },
+                modifier = Modifier.size(40.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Go Back",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+
+        Column(
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .padding(horizontal = 16.dp)
+                .fillMaxHeight()
+        ) {
+            CircularProgressIndicator(
+                modifier = Modifier.width(64.dp),
+                color = MaterialTheme.colorScheme.secondary,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+            )
+            Spacer(Modifier.height(32.dp))
+            Text(stringResource(R.string.processing))
+
         }
     }
 }

@@ -6,7 +6,7 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
@@ -22,7 +22,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -34,6 +33,7 @@ import com.mcldev.comprainteligente.ui.home_screen.HomeScreenVmFactory
 import com.mcldev.comprainteligente.ui.scan_screen.ScanScreen
 import com.mcldev.comprainteligente.ui.scan_screen.ScanScreenVM
 import com.mcldev.comprainteligente.ui.theme.CompraInteligenteTheme
+import com.mcldev.comprainteligente.ui.util.ErrorCodes
 import com.mcldev.comprainteligente.ui.util.Screen
 import java.io.File
 import java.io.FileOutputStream
@@ -85,7 +85,7 @@ class MainActivity : ComponentActivity() {
         val homeScreenViewModel = ViewModelProvider(
             this,
             HomeScreenVmFactory(database.productDao(), database.supermarketDao())
-        ).get(HomeScreenVM::class.java)
+        )[HomeScreenVM::class.java]
 
         /*lifecycleScope.launch {
             database.productDao().upsertProduct(Product(
@@ -99,7 +99,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             CompraInteligenteTheme {
                 Surface {
-                    // Check how much RAM is installed on the phone before launching the app
+                    // Check RAM amount and initializes Tesserat folder
                     val actManager = getSystemService(ACTIVITY_SERVICE) as ActivityManager
                     val memInfo = ActivityManager.MemoryInfo()
                     actManager.getMemoryInfo(memInfo)
@@ -109,16 +109,14 @@ class MainActivity : ComponentActivity() {
                     if (totalMemory < 2) {
                         AlertDialog(
                             onConfirmation = {finish()},
-                            dialogTitle = stringResource(R.string.err_unsupported_title),
-                            dialogText = stringResource(R.string.err_unsupported),
+                            errCode =  ErrorCodes.UNSUPPORTED_DEVICE_ERROR_1,
                             icon = R.drawable.warning_ic
                         )
                     }
                     else  if(path == null) {
                         AlertDialog(
                             onConfirmation = {finish()},
-                            dialogTitle = stringResource(R.string.err_storage_title),
-                            dialogText = stringResource(R.string.err_storage),
+                            errCode =  ErrorCodes.UNSUPPORTED_DEVICE_ERROR_2,
                             icon = R.drawable.warning_ic
                         )
                     } else {
@@ -153,8 +151,7 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun AlertDialog(
         onConfirmation: () -> Unit,
-        dialogTitle: String,
-        dialogText: String,
+        errCode: ErrorCodes,
         icon: Int,
     ) {
         AlertDialog(
@@ -168,7 +165,7 @@ class MainActivity : ComponentActivity() {
             },
             title = {
                 Text(
-                    text = dialogTitle,
+                    text = stringResource(errCode.titleResId),
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
@@ -179,10 +176,14 @@ class MainActivity : ComponentActivity() {
                 )
             },
             text = {
-                Text(
-                    text = dialogText,
-
-                )
+                // Error message (if available)
+                errCode.messageResId?.let { messageResId ->
+                    val message = stringResource(messageResId)
+                    Text(
+                        text = message,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             },
             onDismissRequest = {},
             confirmButton = {
