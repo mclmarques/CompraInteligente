@@ -71,10 +71,10 @@ class ScanScreenVM(private val path: String?) : ViewModel() {
                 }
                 else {
                     ocrFault()
-                    Log.d("debug", "Fault extracting the image!")
+                    Log.e("debug", "Fault extracting the image!")
                 }
             }
-        } else Log.d("debug", _contents.value?:"Fault! Image URI was null")
+        } else Log.e("debug", _contents.value?:"Fault! Image URI was null")
 
     }
 
@@ -91,7 +91,7 @@ class ScanScreenVM(private val path: String?) : ViewModel() {
                 context.contentResolver.openOutputStream(saveUri)?.use { outputStream ->
                     bitmap?.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
                 }
-                Log.d("debug", "Image saved successfully at $saveUri")
+                Log.i("debug", "Image saved successfully at $saveUri")
             } catch (e: IOException) {
                 Log.e("debug", "Error saving image: ${e.message}")
             }
@@ -114,8 +114,9 @@ class ScanScreenVM(private val path: String?) : ViewModel() {
             tessBaseAPI.init(path, "por") // or other languages
             Log.i("Tesseract", "Tesseract engine initialized successfully")
             tessBaseAPI.setImage(image)
-            tessBaseAPI.setPageSegMode(TessBaseAPI.PageSegMode.PSM_AUTO) // optional config
+            tessBaseAPI.setPageSegMode(TessBaseAPI.PageSegMode.PSM_SINGLE_COLUMN) // optional config
             val recognizedText = tessBaseAPI.utF8Text
+            Log.i("OCR", recognizedText)
             tessBaseAPI.recycle() // keep engine alive for multiple uses
             recognizedText
         }
