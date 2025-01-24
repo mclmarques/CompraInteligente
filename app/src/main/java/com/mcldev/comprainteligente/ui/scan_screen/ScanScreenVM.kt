@@ -55,6 +55,7 @@ class ScanScreenVM(private val path: String?) : ViewModel() {
      * TOOD: Fix the issue causing the processImage emthod not wait for the loadAndSaveBitmap method to end
      */
     fun processImage(context: Context, uri: Uri) {
+        var rawText: String? = null
         _processingState.value = ProcessingState.Loading
         if(uri.path != null) {
             imageUri = uri
@@ -67,7 +68,11 @@ class ScanScreenVM(private val path: String?) : ViewModel() {
                     )
                 }.join()
                 if (bitmap != null) {
-                    _contents.value = performOCR(bitmap!!)
+                    viewModelScope.launch {
+                        rawText = performOCR(bitmap!!)
+                        rawText = rawText?.let { postProcessOCRText(it) }
+                    }.join()
+                    _contents.value = rawText
                 }
                 else {
                     ocrFault()
@@ -114,13 +119,74 @@ class ScanScreenVM(private val path: String?) : ViewModel() {
             tessBaseAPI.init(path, "por") // or other languages
             Log.i("Tesseract", "Tesseract engine initialized successfully")
             tessBaseAPI.setImage(image)
-            tessBaseAPI.setPageSegMode(TessBaseAPI.PageSegMode.PSM_SINGLE_COLUMN) // optional config
+            tessBaseAPI.setPageSegMode(TessBaseAPI.PageSegMode.PSM_SINGLE_BLOCK)
             val recognizedText = tessBaseAPI.utF8Text
             Log.i("OCR", recognizedText)
             tessBaseAPI.recycle() // keep engine alive for multiple uses
             recognizedText
         }
     }
+
+    private suspend fun postProcessOCRText(ocrText: String): String {
+        return withContext(Dispatchers.Default) {
+            // Split the text into lines
+            val lines = ocrText.lines()
+            println("Lines extracted from OCR text: $lines")
+
+            // Extract supermarket name (assume it's the second line)
+            val supermarketName = lines.getOrNull(1) ?: "UNKNOWN"
+            println("Supermarket name extracted: $supermarketName")
+
+            // Extract date and time (formatted as dd/MM/yy hh:mm:ss)
+            val dateRegex = Regex("""\d{2}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}""")
+            val date = dateRegex.find(ocrText)?.value ?: "UNKNOWN"
+            println("Date extracted: $date")
+
+            // Process products
+            val productRegex = Regex("""\d{5,13}[A-Za-z0-9\s,.-]*?(\d{1,3}[.,]\d{2})""")
+            val seenProducts = mutableSetOf<String>()
+            val products = mutableListOf<String>()
+
+            println("Starting product extraction...")
+            productRegex.findAll(ocrText).forEach { match ->
+                val matchText = match.value
+                println("Matched product block: $matchText")
+
+                val parts = matchText.split(Regex("""\s+"""))
+                println("Split parts of product block: $parts")
+
+                // Get product name (first 3 words max)
+                val productName = parts.drop(1).take(3).joinToString(" ")
+                println("Product name extracted: $productName")
+
+                // Extract price
+                val priceRegex = Regex("""\d{1,3}[.,]\d{2}""")
+                val prices = priceRegex.findAll(matchText).map { it.value.replace(",", ".") }.toList()
+                println("Prices extracted: $prices")
+
+                val price = prices.minByOrNull { it.toDouble() } ?: "0.00"
+                println("Selected price: $price")
+
+                // Avoid duplicates
+                val productEntry = "$productName-$price"
+                if (productEntry !in seenProducts) {
+                    println("Adding product entry: $productEntry")
+                    seenProducts.add(productEntry)
+                    products.add(productEntry)
+                } else {
+                    println("Duplicate product entry skipped: $productEntry")
+                }
+            }
+
+            // Combine everything into the final string
+            val result = "$supermarketName-$date-${products.joinToString("-")}"
+            println("Final result: $result")
+            result
+
+
+        }
+    }
+
 
     /**
      * Method to trigger a camera error launch and make the UI show the appropriate err code
