@@ -134,56 +134,23 @@ class ScanScreenVM(private val path: String?) : ViewModel() {
             println("Lines extracted from OCR text: $lines")
 
             // Extract supermarket name (assume it's the second line)
-            val supermarketName = lines.getOrNull(1) ?: "UNKNOWN"
+            val supermarketName = lines[1]
             println("Supermarket name extracted: $supermarketName")
 
             // Extract date and time (formatted as dd/MM/yy hh:mm:ss)
             val dateRegex = Regex("""\d{2}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}""")
-            val date = dateRegex.find(ocrText)?.value ?: "UNKNOWN"
-            println("Date extracted: $date")
-
-            // Process products
-            val productRegex = Regex("""\d{5,13}[A-Za-z0-9\s,.-]*?(\d{1,3}[.,]\d{2})""")
-            val seenProducts = mutableSetOf<String>()
-            val products = mutableListOf<String>()
-
-            println("Starting product extraction...")
-            productRegex.findAll(ocrText).forEach { match ->
-                val matchText = match.value
-                println("Matched product block: $matchText")
-
-                val parts = matchText.split(Regex("""\s+"""))
-                println("Split parts of product block: $parts")
-
-                // Get product name (first 3 words max)
-                val productName = parts.drop(1).take(3).joinToString(" ")
-                println("Product name extracted: $productName")
-
-                // Extract price
-                val priceRegex = Regex("""\d{1,3}[.,]\d{2}""")
-                val prices = priceRegex.findAll(matchText).map { it.value.replace(",", ".") }.toList()
-                println("Prices extracted: $prices")
-
-                val price = prices.minByOrNull { it.toDouble() } ?: "0.00"
-                println("Selected price: $price")
-
-                // Avoid duplicates
-                val productEntry = "$productName-$price"
-                if (productEntry !in seenProducts) {
-                    println("Adding product entry: $productEntry")
-                    seenProducts.add(productEntry)
-                    products.add(productEntry)
-                } else {
-                    println("Duplicate product entry skipped: $productEntry")
-                }
+            val date = dateRegex.find(lines[5])
+            if (date != null) {
+                println("Date extracted: ${date.value}")
             }
 
-            // Combine everything into the final string
-            val result = "$supermarketName-$date-${products.joinToString("-")}"
-            println("Final result: $result")
-            result
-
-
+            val productRegex = Regex(""""(\w{13}|\w{5}|\w{8}|\w{14}|\w{15})\s(\w+\s?){1,5}""")
+            val priceRegex = Regex("""(\d{1,3}[.,]\d{2})""")
+            for(line in 7 .. (lines.size - 2) step 2) {
+                Log.i("post-process", "Found product: " + (productRegex.find(lines[line])?.value ?:"Fault! Null product"))
+                Log.i("post-process", "Found price: " + (productRegex.find(lines[(line + 1)])?.value ?:"Fault! Null price"))
+            }
+            ""
         }
     }
 
