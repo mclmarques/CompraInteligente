@@ -129,30 +129,35 @@ class ScanScreenVM(private val path: String?) : ViewModel() {
 
     private suspend fun postProcessOCRText(ocrText: String): String {
         return withContext(Dispatchers.Default) {
-            // Split the text into lines
             val lines = ocrText.lines()
-            println("Lines extracted from OCR text: $lines")
 
-            // Extract supermarket name (assume it's the second line)
-            val supermarketName = lines[1]
-            println("Supermarket name extracted: $supermarketName")
+            // Regex patterns
+            val productRegex = Regex("""\d{6,14}\s+((\w+\s?){1,5})""") // Product code + up to 5 words
+            val priceRegex = Regex("""(\d{1,3}[.,]\d{2})""") // Flexible price pattern
 
-            // Extract date and time (formatted as dd/MM/yy hh:mm:ss)
-            val dateRegex = Regex("""\d{2}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}""")
-            val date = dateRegex.find(lines[5])
-            if (date != null) {
-                println("Date extracted: ${date.value}")
+            val results = mutableListOf<String>()
+
+            for (i in lines.indices) {
+                // Attempt to match a product line
+                val productMatch = productRegex.find(lines[i])
+                if (productMatch != null) {
+                    val productDescription = productMatch.groupValues[1].trim()
+
+                    // Attempt to find a price in the next line
+                    val priceMatch = if (i + 1 < lines.size) priceRegex.find(lines[i + 1]) else null
+                    val price = priceMatch?.value ?: "Price not found"
+
+                    results.add("$productDescription $price")
+                }
             }
 
-            val productRegex = Regex(""""(\w{13}|\w{5}|\w{8}|\w{14}|\w{15})\s(\w+\s?){1,5}""")
-            val priceRegex = Regex("""(\d{1,3}[.,]\d{2})""")
-            for(line in 7 .. (lines.size - 2) step 2) {
-                Log.i("post-process", "Found product: " + (productRegex.find(lines[line])?.value ?:"Fault! Null product"))
-                Log.i("post-process", "Found price: " + (productRegex.find(lines[(line + 1)])?.value ?:"Fault! Null price"))
-            }
-            ""
+            // Log results for debugging
+            results.forEach { Log.i("post-process", it) }
+
+            results.joinToString("\n")
         }
     }
+
 
 
     /**
