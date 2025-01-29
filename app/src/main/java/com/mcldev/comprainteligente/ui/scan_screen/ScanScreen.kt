@@ -10,6 +10,7 @@ import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,14 +21,19 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FabPosition
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,15 +43,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult
 import com.mcldev.comprainteligente.R
+import com.mcldev.comprainteligente.data.Product
 import com.mcldev.comprainteligente.ui.util.ErrorCodes
 
 
@@ -57,7 +66,8 @@ fun ScanScreen(
 ) {
     val context = LocalContext.current
     val processingState by viewModel.processingState.collectAsState()
-    val contents by viewModel.contents.collectAsState()
+    val products by viewModel.products.collectAsState()
+    val prices by viewModel.prices.collectAsState()
     //Scanner stuff
     val scannerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartIntentSenderForResult(),
@@ -89,38 +99,83 @@ fun ScanScreen(
             }
 
     }
-    if(processingState is ProcessingState.Error){
-        val errorCode = (processingState as ProcessingState.Error).code
-        ErrorScreen(
-            navController = navController,
-            errCode = errorCode
+    when(processingState) {
+        ProcessingState.Complete -> ListOfItems(
+            products = products,
+            prices = prices,
+            updateProduct = { newName, newPrice, product ->
+
+            },
+            navBack = {},
+            saveProducts = { }
         )
-    }
-    else {
-        when(contents) {
-            null -> {
-                LoadingScreen()
-            }
-            else -> {
-                ListOfItems(
-                    navController = navController,
-                    contents = contents!!
-                )
-            }
+        is ProcessingState.Error -> {
+            val errorCode = (processingState as ProcessingState.Error).code
+            ErrorScreen(
+                navController = navController,
+                errCode = errorCode
+            )
         }
+        ProcessingState.Idle -> LoadingScreen()
+        ProcessingState.Loading -> LoadingScreen()
     }
 }
 
 @Composable
 fun ListOfItems(
-    navController: NavHostController,
-    contents: String
+    products: List<String>,
+    prices: List<Float>,
+    updateProduct: (String?, Float?, Product) -> Unit,
+    navBack: () -> Unit,
+    saveProducts: () -> Unit
 ) {
-    LazyColumn (modifier = Modifier.padding(16.dp)){
-        item {
-            Text(contents)
+    Log.i("UI", "size of products: ${products.size}")
+    Log.i("UI", "size of prices: ${prices.size}")
+    Scaffold(
+        floatingActionButton = {
+            Row {
+                Button(onClick = saveProducts) {
+                    Icon(painter = painterResource(R.drawable.confirm_24), "confirm")
+                }
+                Spacer(Modifier.width(8.dp))
+                Button(onClick = navBack) {
+                    Icon(painter = painterResource(R.drawable.cancel_24), "cancel")
+                }
+            }
+        },
+        floatingActionButtonPosition = FabPosition.Center
+    )
+    {
+        LazyColumn(modifier = Modifier.padding(it)) {
+            items(products.size) { item ->
+                Card(
+                    modifier = Modifier
+                        .padding(horizontal = 8.dp)
+                        .padding(top = 8.dp)
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.padding(8.dp)
+                    ) {
+                        //TODO: Change to textfield and modify it a bit
+                        OutlinedTextField(
+                            modifier = Modifier.weight(0.5f),
+                            value = products.get(item),
+                            onValueChange = {},
+                            label = {})
+                        Spacer(Modifier.width(32.dp))
+
+                        OutlinedTextField(
+                            modifier = Modifier.weight(0.5f),
+                            value = prices.get(item).toString(),
+                            onValueChange = {},
+                            label = {})
+                    }
+                }
+            }
         }
     }
+
 }
 
 @Composable

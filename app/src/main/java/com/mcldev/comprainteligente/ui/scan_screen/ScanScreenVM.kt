@@ -15,10 +15,13 @@ import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions.RESULT_
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions.SCANNER_MODE_FULL
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanning
 import com.googlecode.tesseract.android.TessBaseAPI
+import com.mcldev.comprainteligente.data.Product
+import com.mcldev.comprainteligente.data.ProductDao
 import com.mcldev.comprainteligente.ui.util.ErrorCodes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -30,14 +33,20 @@ TODO:
 2. Remove black screen while processing and use the proper screen
 3. post-process the text
  */
-class ScanScreenVM(private val path: String?) : ViewModel() {
+class ScanScreenVM(
+    private val path: String?,
+    private val productDao: ProductDao
+    ) : ViewModel() {
     private var imageUri: Uri? = null
 
     private val _processingState = MutableStateFlow<ProcessingState>(ProcessingState.Idle)
     val processingState: StateFlow<ProcessingState> = _processingState
 
-    private val _contents = MutableStateFlow<String?>(null)
-    val contents: StateFlow<String?> = _contents
+    private val _products = MutableStateFlow(mutableListOf<String>())
+    val products: StateFlow<MutableList<String>> = _products
+
+    private val _prices = MutableStateFlow(mutableListOf<Float>())
+    val prices: StateFlow<MutableList<Float>> = _prices
 
 
     fun prepareScanner(): GmsDocumentScanner {
@@ -70,18 +79,52 @@ class ScanScreenVM(private val path: String?) : ViewModel() {
                 if (bitmap != null) {
                     viewModelScope.launch {
                         rawText = performOCR(bitmap!!)
-                        rawText = rawText?.let { postProcessOCRText(it) }
+                        rawText?.let { postProcessOCRText(it) }
+                        _processingState.value = ProcessingState.Complete
+                        Log.i("state", "Updated state!")
                     }.join()
-                    _contents.value = rawText
                 }
                 else {
                     ocrFault()
                     Log.e("debug", "Fault extracting the image!")
                 }
             }
-        } else Log.e("debug", _contents.value?:"Fault! Image URI was null")
+        } else Log.e("debug", "Fault! Image URI was null")
+
 
     }
+
+    /**
+     * Method to trigger a camera error launch and make the UI show the appropriate err code
+     */
+    fun cameraLaunchFault() {
+        _processingState.value = ProcessingState.Error(ErrorCodes.CAMERA_ERROR)
+    }
+    /**
+     * Method to trigger a storage error launch and make the UI show the appropriate err code
+     */
+    fun storageFault() {
+        _processingState.value = ProcessingState.Error(ErrorCodes.DATA_SAVE_ERROR)
+    }
+
+    fun ocrFault() {
+        _processingState.value = ProcessingState.Error(ErrorCodes.TEXT_EXTRACTION_ERROR)
+    }
+
+    fun updateProduct(productName: String? = null, productPrice: Float?, product: Product) {
+            val newProduct = Product(
+                id = product.id,
+                name = if(productName != null) productName else product.name,
+                price = if(productPrice != null) productPrice else product.price,
+                unit = product.unit,
+                supermarketId = product.supermarketId
+            )
+        viewModelScope.launch {
+            productDao.upsertProduct(newProduct)
+        }
+    }
+
+    //Internal helper methods of the viewmodel
 
     private suspend fun loadAndSaveBitmap(uri: Uri, context: Context): Bitmap? {
         return withContext(Dispatchers.IO) {
@@ -127,54 +170,35 @@ class ScanScreenVM(private val path: String?) : ViewModel() {
         }
     }
 
-    private suspend fun postProcessOCRText(ocrText: String): String {
-        return withContext(Dispatchers.Default) {
-            val lines = ocrText.lines()
+    fun saveProducts() {
 
+    }
+
+    private suspend fun postProcessOCRText(ocrText: String) {
+        Log.i("post-process", "Post processing started!")
+        viewModelScope.launch(Dispatchers.Default) {
+            val lines = ocrText.lines()
+            val products: MutableList<Product>
             // Regex patterns
             val productRegex = Regex("""\d{6,14}\s+((\w+\s?){1,5})""") // Product code + up to 5 words
-            val priceRegex = Regex("""(\d{1,3}[.,]\d{2})""") // Flexible price pattern
-
-            val results = mutableListOf<String>()
+            val priceRegex = Regex("""(\d{1,3}[.,]\d{2})""")
 
             for (i in lines.indices) {
                 // Attempt to match a product line
                 val productMatch = productRegex.find(lines[i])
                 if (productMatch != null) {
                     val productDescription = productMatch.groupValues[1].trim()
+                    _products.update { it.apply { add(productDescription) } }
 
                     // Attempt to find a price in the next line
                     val priceMatch = if (i + 1 < lines.size) priceRegex.find(lines[i + 1]) else null
-                    val price = priceMatch?.value ?: "Price not found"
-
-                    results.add("$productDescription $price")
+                    val priceString = priceMatch?.value?.replace(",", ".")
+                    val price = priceString?.toFloatOrNull() ?: 0.0f
+                    _prices.update { it.apply { add(price) } }
                 }
             }
-
-            // Log results for debugging
-            results.forEach { Log.i("post-process", it) }
-
-            results.joinToString("\n")
         }
-    }
-
-
-
-    /**
-     * Method to trigger a camera error launch and make the UI show the appropriate err code
-     */
-    fun cameraLaunchFault() {
-        _processingState.value = ProcessingState.Error(ErrorCodes.CAMERA_ERROR)
-    }
-    /**
-     * Method to trigger a storage error launch and make the UI show the appropriate err code
-     */
-    fun storageFault() {
-        _processingState.value = ProcessingState.Error(ErrorCodes.DATA_SAVE_ERROR)
-    }
-
-    fun ocrFault() {
-        _processingState.value = ProcessingState.Error(ErrorCodes.TEXT_EXTRACTION_ERROR)
+        Log.i("post-process", "Post processing finished!")
     }
 }
 

@@ -9,5 +9,5 @@ data class Supermarket (
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
     val name: String,
-    val localization: Location  // Can represent the location of the supermarket
+    val localization: Location
 )

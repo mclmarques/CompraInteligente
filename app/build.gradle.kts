@@ -68,22 +68,16 @@ dependencies {
 
     //Room
     implementation(libs.androidx.room.runtime)
-    annotationProcessor(libs.androidx.room.compiler)
-    // To use Kotlin Symbol Processing (KSP)
     ksp(libs.androidx.room.compiler)
-    // optional - Kotlin Extensions and Coroutines support for Room
+    val room_version = "2.6.1"
     implementation(libs.androidx.room.ktx)
-    // optional - Test helpers
-    testImplementation(libs.androidx.room.testing)
-    // optional - Paging 3 Integration
-    implementation(libs.androidx.room.paging)
 
     //Navigation
     implementation(libs.navigation.compose)
     implementation(libs.kotlinx.serialization.json)
 
     //ML kit for text recognition
-    implementation("cz.adaptech.tesseract4android:tesseract4android-openmp:4.8.0")
+    implementation(libs.tesseract4android.openmp)
     //Scanner utility ML
     implementation(libs.play.services.mlkit.document.scanner)
 

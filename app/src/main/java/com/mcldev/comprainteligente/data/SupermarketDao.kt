@@ -18,4 +18,7 @@ interface SupermarketDao {
 
     @Query("SELECT * FROM supermarket WHERE id = :supermarketId LIMIT 1")
     suspend fun getSupermarketById(supermarketId: Int): Supermarket?
+
+    @Query("SELECT * FROM supermarket WHERE name = :supermarketName")
+    suspend fun getSupermarketByName(supermarketName: String): Supermarket?
 }
