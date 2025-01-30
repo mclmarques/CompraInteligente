@@ -17,11 +17,13 @@ import com.google.mlkit.vision.documentscanner.GmsDocumentScanning
 import com.googlecode.tesseract.android.TessBaseAPI
 import com.mcldev.comprainteligente.data.Product
 import com.mcldev.comprainteligente.data.ProductDao
+import com.mcldev.comprainteligente.data.Supermarket
+import com.mcldev.comprainteligente.data.SupermarketDao
 import com.mcldev.comprainteligente.ui.util.ErrorCodes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -29,26 +31,30 @@ import java.io.IOException
 
 /*
 TODO:
-1. Configuration changes re call the scanner, even after the process been completed
-2. Remove black screen while processing and use the proper screen
-3. post-process the text
+- Refactor code
+- Generate documentation
  */
 class ScanScreenVM(
     private val path: String?,
-    private val productDao: ProductDao
-    ) : ViewModel() {
+    private val productDao: ProductDao,
+    private val supermarketDao: SupermarketDao
+) : ViewModel() {
     private var imageUri: Uri? = null
 
     private val _processingState = MutableStateFlow<ProcessingState>(ProcessingState.Idle)
     val processingState: StateFlow<ProcessingState> = _processingState
 
     private val _products = MutableStateFlow(mutableListOf<String>())
-    val products: StateFlow<MutableList<String>> = _products
+    val products = _products.asStateFlow()
 
     private val _prices = MutableStateFlow(mutableListOf<Float>())
-    val prices: StateFlow<MutableList<Float>> = _prices
+    val prices = _prices.asStateFlow()
+
+    private val _supermarket = MutableStateFlow<String?>(null)
+    val supermarket = _supermarket.asStateFlow()
 
 
+    //Scanner & OCR
     fun prepareScanner(): GmsDocumentScanner {
         //Scanner stuff
         val options = GmsDocumentScannerOptions.Builder()
@@ -60,13 +66,11 @@ class ScanScreenVM(
         return GmsDocumentScanning.getClient(options)
     }
 
-    /**
-     * TOOD: Fix the issue causing the processImage emthod not wait for the loadAndSaveBitmap method to end
-     */
+
     fun processImage(context: Context, uri: Uri) {
-        var rawText: String? = null
+        var rawText: String?
         _processingState.value = ProcessingState.Loading
-        if(uri.path != null) {
+        if (uri.path != null) {
             imageUri = uri
             var bitmap: Bitmap? = null
             viewModelScope.launch() {
@@ -83,23 +87,82 @@ class ScanScreenVM(
                         _processingState.value = ProcessingState.Complete
                         Log.i("state", "Updated state!")
                     }.join()
-                }
-                else {
+                } else {
                     ocrFault()
                     Log.e("debug", "Fault extracting the image!")
                 }
             }
         } else Log.e("debug", "Fault! Image URI was null")
-
-
     }
 
-    /**
-     * Method to trigger a camera error launch and make the UI show the appropriate err code
-     */
+    //Data management (save, modify or edit products)
+
+    fun deleteItem(position: Int) {
+        if (position in _products.value.indices) {
+            _products.value = _products.value.toMutableList().apply { removeAt(position) }
+            _prices.value = _prices.value.toMutableList().apply { removeAt(position) }
+        }
+    }
+
+    fun saveProducts() {
+        viewModelScope.launch(Dispatchers.IO) {
+            var supermarketEntity: Supermarket?
+            if (supermarket.value != null) {
+                supermarketEntity = supermarketDao.getSupermarketByName(supermarketName = _supermarket.value!!)
+                if (supermarketEntity != null) {
+                    for (item in products.value.indices) {
+                        val product = Product(
+                            name = products.value[item],
+                            price = prices.value[item],
+                            supermarketId = supermarketEntity.id
+                        )
+                        productDao.upsertProduct(product)
+                    }
+                } else {
+                    viewModelScope.launch(Dispatchers.IO) {
+                        supermarketDao.upsertSupermarket(Supermarket(name = supermarket.value!!))
+                        supermarketEntity = supermarketDao.getSupermarketByName(supermarket.value!!)
+                    }.join()
+                    if(supermarketEntity != null) {
+                        for (item in products.value.indices) {
+                            val product = Product(
+                                name = products.value[item],
+                                price = prices.value[item],
+                                supermarketId = supermarketEntity!!.id
+                            )
+                            productDao.upsertProduct(product)
+                        }
+                    }
+                    //TODO: handle error saving products (cause: failed to create supermarket)
+
+                }
+            }
+            //TODO: handle error saving products (cause: no supermarket associated)
+        }
+    }
+
+    fun updateProduct(position: Int, newProduct: String? = null, newPrice: Float? = null) {
+        if (position in _products.value.indices) {
+            if(newProduct != null) {
+                _products.value = _products.value.toMutableList().apply { this[position] = newProduct }
+            }
+            else if(newPrice != null) {
+                _prices.value = _prices.value.toMutableList().apply { this[position] = newPrice }
+
+            }
+        }
+    }
+
+    fun updateSuprmarket(newSupermarket: String) {
+        _supermarket.value = newSupermarket
+    }
+
+
+    //Error methods
     fun cameraLaunchFault() {
         _processingState.value = ProcessingState.Error(ErrorCodes.CAMERA_ERROR)
     }
+
     /**
      * Method to trigger a storage error launch and make the UI show the appropriate err code
      */
@@ -112,20 +175,19 @@ class ScanScreenVM(
     }
 
     fun updateProduct(productName: String? = null, productPrice: Float?, product: Product) {
-            val newProduct = Product(
-                id = product.id,
-                name = if(productName != null) productName else product.name,
-                price = if(productPrice != null) productPrice else product.price,
-                unit = product.unit,
-                supermarketId = product.supermarketId
-            )
+        val newProduct = Product(
+            id = product.id,
+            name = if (productName != null) productName else product.name,
+            price = if (productPrice != null) productPrice else product.price,
+            unit = product.unit,
+            supermarketId = product.supermarketId
+        )
         viewModelScope.launch {
             productDao.upsertProduct(newProduct)
         }
     }
 
     //Internal helper methods of the viewmodel
-
     private suspend fun loadAndSaveBitmap(uri: Uri, context: Context): Bitmap? {
         return withContext(Dispatchers.IO) {
             val bitmap: Bitmap?
@@ -170,33 +232,39 @@ class ScanScreenVM(
         }
     }
 
-    fun saveProducts() {
-
-    }
-
     private suspend fun postProcessOCRText(ocrText: String) {
         Log.i("post-process", "Post processing started!")
         viewModelScope.launch(Dispatchers.Default) {
             val lines = ocrText.lines()
-            val products: MutableList<Product>
-            // Regex patterns
+            _supermarket.value = lines[1]
             val productRegex = Regex("""\d{6,14}\s+((\w+\s?){1,5})""") // Product code + up to 5 words
             val priceRegex = Regex("""(\d{1,3}[.,]\d{2})""")
 
+            val updatedProducts = _products.value.toMutableList() // Work on a mutable copy
+            val updatedPrices = _prices.value.toMutableList() // Work on a mutable copy
+
             for (i in lines.indices) {
-                // Attempt to match a product line
                 val productMatch = productRegex.find(lines[i])
                 if (productMatch != null) {
                     val productDescription = productMatch.groupValues[1].trim()
-                    _products.update { it.apply { add(productDescription) } }
 
-                    // Attempt to find a price in the next line
-                    val priceMatch = if (i + 1 < lines.size) priceRegex.find(lines[i + 1]) else null
-                    val priceString = priceMatch?.value?.replace(",", ".")
-                    val price = priceString?.toFloatOrNull() ?: 0.0f
-                    _prices.update { it.apply { add(price) } }
+                    // Ensure the product isn't already added
+                    if (!updatedProducts.contains(productDescription)) {
+                        updatedProducts.add(productDescription)
+
+                        // Find the price
+                        val priceMatch = if (i + 1 < lines.size) priceRegex.find(lines[i + 1]) else null
+                        val priceString = priceMatch?.value?.replace(",", ".")
+                        val price = priceString?.toFloatOrNull() ?: 0.0f
+
+                        updatedPrices.add(price)
+                    }
                 }
             }
+
+            // Update state together to prevent inconsistency
+            _products.value = updatedProducts
+            _prices.value = updatedPrices
         }
         Log.i("post-process", "Post processing finished!")
     }

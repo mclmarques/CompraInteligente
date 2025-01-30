@@ -39,5 +39,6 @@
     <string name="err_storage">This apps needs to save a little file on this device to function properly, but wasn\'t able to.
         \nThis might be because your phone is running low on storage space.
         \n\nTry freeing up some space by deleting unused files or photos, then try saving again.</string>
+    <string name="supermercado_nao_encontrado">Ops! Não encontramos o nome supermercado.</string>
 
 </resources>

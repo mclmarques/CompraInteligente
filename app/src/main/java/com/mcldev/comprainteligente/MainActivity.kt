@@ -87,15 +87,6 @@ class MainActivity : ComponentActivity() {
             HomeScreenVmFactory(database.productDao(), database.supermarketDao())
         )[HomeScreenVM::class.java]
 
-        /*lifecycleScope.launch {
-            database.productDao().upsertProduct(Product(
-                id = 3,
-                name = "Laranja",
-                price = 4.78,
-                unit = "R$/Kg",
-                supermarketId = 1))
-
-        }*/
         setContent {
             CompraInteligenteTheme {
                 Surface {
@@ -135,7 +126,7 @@ class MainActivity : ComponentActivity() {
                             composable(Screen.Scan.route) {
                                 ScanScreen(
                                     modifier = Modifier,
-                                    viewModel = ScanScreenVM(path, productDao = database.productDao()),
+                                    viewModel = ScanScreenVM(path, productDao = database.productDao(), supermarketDao = database.supermarketDao()),
                                     navController = navController
                                 )
                             }

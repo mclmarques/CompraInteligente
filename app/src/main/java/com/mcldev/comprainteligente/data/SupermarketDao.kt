@@ -14,11 +14,11 @@ interface SupermarketDao {
     suspend fun deleteSupermarket(supermarket: Supermarket)
 
     @Query("SELECT * FROM supermarket")
-    suspend fun getAllSupermarkets(): List<Supermarket>
+    fun getAllSupermarkets(): List<Supermarket>
 
     @Query("SELECT * FROM supermarket WHERE id = :supermarketId LIMIT 1")
-    suspend fun getSupermarketById(supermarketId: Int): Supermarket?
+    fun getSupermarketById(supermarketId: Int): Supermarket?
 
     @Query("SELECT * FROM supermarket WHERE name = :supermarketName")
-    suspend fun getSupermarketByName(supermarketName: String): Supermarket?
+    fun getSupermarketByName(supermarketName: String): Supermarket?
 }

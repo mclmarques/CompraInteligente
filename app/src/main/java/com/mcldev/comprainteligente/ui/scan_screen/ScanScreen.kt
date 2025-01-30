@@ -4,7 +4,6 @@ import android.app.Activity
 import android.app.Activity.RESULT_OK
 import android.content.Intent
 import android.provider.Settings
-import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -21,11 +20,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FabPosition
@@ -36,28 +36,45 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult
 import com.mcldev.comprainteligente.R
-import com.mcldev.comprainteligente.data.Product
 import com.mcldev.comprainteligente.ui.util.ErrorCodes
 
-
+/**
+ * @param viewModel: an instance of ScanScreenVM
+ * @param navController: an instance of the navController used to navigate back to the home screen
+ * This composable renders the UI of the scan screen.
+ * It works by first, launching the google document scanner utility and later on passing it's contents
+ * so the viewmodel can process them and finally display the results or possible errors
+ * All the process is done using Strings and Floats, and once the user confirms the selection of products,
+ * a method of the viewmodel converts the strings and prices to actual Product objects and saves them
+ */
 @Composable
 fun ScanScreen(
     viewModel: ScanScreenVM = viewModel(),
@@ -68,6 +85,8 @@ fun ScanScreen(
     val processingState by viewModel.processingState.collectAsState()
     val products by viewModel.products.collectAsState()
     val prices by viewModel.prices.collectAsState()
+    val supermarket by viewModel.supermarket.collectAsState()
+
     //Scanner stuff
     val scannerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartIntentSenderForResult(),
@@ -80,13 +99,12 @@ fun ScanScreen(
                     }
                 } else {
                     viewModel.ocrFault()
-                    Log.e("debug", "Scanner returnned null")
                 }
             } else {
                 viewModel.cameraLaunchFault()
-                Log.e("debug", "Scanner failed to open")
             }
         })
+    //Launches scanner upon opening this screen
     LaunchedEffect(Unit) {
         viewModel.prepareScanner().getStartScanIntent(context as Activity)
             .addOnSuccessListener { intentSender ->
@@ -94,21 +112,32 @@ fun ScanScreen(
             }
             .addOnFailureListener {
                 viewModel.cameraLaunchFault()
-                Log.e("debug", "Scanner failed to open")
 
             }
 
     }
-    when(processingState) {
+    //Call the needed composable depending on the current state
+    when (processingState) {
         ProcessingState.Complete -> ListOfItems(
             products = products,
             prices = prices,
-            updateProduct = { newName, newPrice, product ->
-
+            supermarket = supermarket ?: stringResource(R.string.supermercado_nao_encontrado),
+            updateProduct = { newName, newPrice, position ->
+                viewModel.updateProduct(position, newName, newPrice)
             },
-            navBack = {},
-            saveProducts = { }
+            navBack = { navController.popBackStack() },
+            saveProducts = {
+                viewModel.saveProducts()
+                navController.popBackStack()
+            },
+            deleteProduct = { position ->
+                viewModel.deleteItem(position)
+            },
+            updateSupermarket = { newSupermarket ->
+                viewModel.updateSuprmarket(newSupermarket)
+            }
         )
+
         is ProcessingState.Error -> {
             val errorCode = (processingState as ProcessingState.Error).code
             ErrorScreen(
@@ -116,29 +145,57 @@ fun ScanScreen(
                 errCode = errorCode
             )
         }
+
         ProcessingState.Idle -> LoadingScreen()
         ProcessingState.Loading -> LoadingScreen()
     }
 }
 
+/**
+ * @param products: list of products to show.
+ * @param prices: list of the prices
+ * @param updateProduct: how to update one of the scanned item (price or product description).
+ * @param navBack: lambda to navigate to the homescreen and discard changes
+ * @param saveProducts: lambda to save the products into the DB
+ * @param deleteProduct: lambda that discard a specific item
+ */
 @Composable
 fun ListOfItems(
     products: List<String>,
     prices: List<Float>,
-    updateProduct: (String?, Float?, Product) -> Unit,
+    supermarket: String,
+    updateSupermarket: (newName: String) -> Unit,
+    updateProduct: (product: String?, price: Float?, position: Int) -> Unit,
     navBack: () -> Unit,
-    saveProducts: () -> Unit
+    saveProducts: () -> Unit,
+    deleteProduct: (position: Int) -> Unit
 ) {
-    Log.i("UI", "size of products: ${products.size}")
-    Log.i("UI", "size of prices: ${prices.size}")
+    var isSupermarketValid by remember { mutableStateOf(supermarket.isNotEmpty()) }
     Scaffold(
         floatingActionButton = {
             Row {
-                Button(onClick = saveProducts) {
-                    Icon(painter = painterResource(R.drawable.confirm_24), "confirm")
+                Button(
+                    onClick = saveProducts,
+                    shape = CircleShape, // Makes it circular
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Green.copy(alpha = 0.70f), // Greenish, adapting to theme
+                    ),
+                    enabled = isSupermarketValid
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.confirm_24),
+                        contentDescription = "Confirm"
+                    )
                 }
+
                 Spacer(Modifier.width(8.dp))
-                Button(onClick = navBack) {
+                Button(
+                    onClick = saveProducts,
+                    shape = CircleShape, // Makes it circular
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Red.copy(alpha = 0.70f), // Greenish, adapting to theme
+                    )
+                ) {
                     Icon(painter = painterResource(R.drawable.cancel_24), "cancel")
                 }
             }
@@ -146,38 +203,125 @@ fun ListOfItems(
         floatingActionButtonPosition = FabPosition.Center
     )
     {
-        LazyColumn(modifier = Modifier.padding(it)) {
-            items(products.size) { item ->
-                Card(
-                    modifier = Modifier
-                        .padding(horizontal = 8.dp)
-                        .padding(top = 8.dp)
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.padding(8.dp)
-                    ) {
-                        //TODO: Change to textfield and modify it a bit
-                        OutlinedTextField(
-                            modifier = Modifier.weight(0.5f),
-                            value = products.get(item),
-                            onValueChange = {},
-                            label = {})
-                        Spacer(Modifier.width(32.dp))
+        Column(modifier = Modifier.padding(it)) {
+            var supermarketName by remember(supermarket) { mutableStateOf(supermarket) }
+            Row (modifier = Modifier.padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically){
+                Text("Supermercado: ")
+                Spacer(modifier = Modifier.width(8.dp))
+                OutlinedTextField(
+                    modifier = Modifier.weight(0.7f),
+                    value = supermarketName,
+                    onValueChange = {
+                        supermarketName = it
+                        isSupermarketValid = supermarketName.isNotEmpty()
+                        if(isSupermarketValid) updateSupermarket(supermarketName)
+                    },
+                    isError = !isSupermarketValid,
+                    supportingText = {
+                        if (!isSupermarketValid) {
+                            Text("O supermercado deve ter um nome", color = MaterialTheme.colorScheme.error) // Error message
+                        }
+                    },
+                    label = {},
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Text,
+                        imeAction = ImeAction.Done
+                    ),
+                    singleLine = true
+                )
 
-                        OutlinedTextField(
-                            modifier = Modifier.weight(0.5f),
-                            value = prices.get(item).toString(),
-                            onValueChange = {},
-                            label = {})
+            }
+            LazyColumn {
+                items(products.size, key = { index -> products[index] }) { item ->
+                    var productName by remember(products[item]) { mutableStateOf(products[item]) }
+                    var productPrice by remember(prices[item]) { mutableStateOf(prices[item].toString()) }
+                    var isAnyproductInvalid by remember { mutableStateOf(false) }
+                    val currencyTransformation = VisualTransformation { text ->
+                        TransformedText(
+                            text = AnnotatedString(text.text + " R$"),
+                            offsetMapping = object : OffsetMapping {
+                                override fun originalToTransformed(offset: Int): Int = offset
+                                override fun transformedToOriginal(offset: Int): Int =
+                                    offset.coerceAtMost(text.length)
+                            }
+                        )
+                    }
+                    Card(
+                        modifier = Modifier
+                            .padding(horizontal = 8.dp)
+                            .padding(top = 8.dp)
+                    ) {
+
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(8.dp)
+                        ) {
+                            OutlinedTextField(
+                                modifier = Modifier.weight(0.7f),
+                                value = productName,
+                                onValueChange = {
+                                    productName = it
+                                    isAnyproductInvalid = productName.isEmpty()
+                                    if(isSupermarketValid) updateProduct(productName, null, item)
+                                },
+                                isError = productName.isEmpty(),
+                                supportingText = {
+                                    if (productName.isEmpty()) {
+                                        Text("O produto deve ter um nome", color = MaterialTheme.colorScheme.error) // Error message
+                                    }
+                                },
+                                label = {},
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Text,
+                                    imeAction = ImeAction.Done // Or ImeAction.Next, etc.
+                                )
+                            )
+                            Spacer(Modifier.width(32.dp))
+
+                            TextField(
+                                modifier = Modifier.weight(0.3f),
+                                value = productPrice,
+                                onValueChange = {
+                                    productPrice = it.toString()
+                                    updateProduct(null, productPrice.toFloatOrNull() ?: 0.0f, item)
+                                },
+                                label = {},
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Number,
+                                    imeAction = ImeAction.Done // Or ImeAction.Next, etc.
+                                ),
+                                visualTransformation = currencyTransformation,
+                            )
+
+                            Spacer(Modifier.width(16.dp))
+
+                            Button(
+                                onClick = { deleteProduct(item) },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color.Red.copy(0.75f), // Background color
+                                    contentColor = Color.White  // Text/Icon color
+                                )
+                            ) {
+                                Icon(
+                                    painterResource(R.drawable.trash_24),
+                                    contentDescription = "Delete item"
+                                )
+                            }
+                        }
                     }
                 }
             }
         }
     }
-
 }
 
+/**
+ * @param navController: navController instance used to go back to the home screen
+ * @param errCode: used to determine what went wrong. Check util package to see more about errors
+ * Simple composable that display the main error and possible fixes. It also has a back button at the
+ * top to go back to the home screen
+ */
 @Composable
 fun ErrorScreen(
     navController: NavHostController,
@@ -256,6 +400,11 @@ fun ErrorScreen(
         }
     }
 }
+
+/**
+ * Basic loading screen that displays a circular infinite loading
+ * In future releases will be revamped to include progress loading bar
+ */
 
 @Composable
 fun LoadingScreen() {
