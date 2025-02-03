@@ -9,6 +9,7 @@ import android.util.Log
 import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanner
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions.RESULT_FORMAT_JPEG
@@ -34,7 +35,7 @@ import java.io.IOException
  * The Viewmodel is design to handle as much of the logic as possible and to main a clean architecture
  * It is organized like this:
  * Internal global variables
- * Method to intialize and perform OCR
+ * Method to initialize and perform OCR
  * Methods to work with data using the DAOs
  * Error methods to update the UI and display the err and possible solutions
  * Internal methods which in essence are the OCR operation, OCR helper methods and post-processing OCR
@@ -72,10 +73,12 @@ class ScanScreenVM(
 
     /**
      * @param uri: URI of the photo to perform the OCR operation on
-     * This methods using a coroutine will perform the OCR operation and update the ProcessingState once completed
-     * It doesn't return anything because the data is already passed to the postProcessOCRText method that will auto save the data
-     * into the internal golbal varaible.
-     *
+     * This changes the State to Loading and calls the loadAndSave bitmap to load the bitmap from the URI and locally save the image.
+     * Afterwards it cals the performOcr and finally the postProcessOcr, that takes the String from the performOcr and
+     * adjust it.
+     * The method doesn't return anything because the postProcessOcr already saves the data into the apropriete
+     * _products & _prices lists
+     * Once complete, the State is changed to Complete
      *
      */
     fun processImage(context: Context, uri: Uri) {
@@ -84,19 +87,16 @@ class ScanScreenVM(
         if (uri.path != null) {
             imageUri = uri
             var bitmap: Bitmap? = null
-            viewModelScope.launch() {
-                viewModelScope.launch(Dispatchers.IO) {
-                    bitmap = loadAndSaveBitmap(
+            viewModelScope.launch {
+                bitmap = withContext(Dispatchers.IO) {
+                    loadAndSaveBitmap(
                         uri = uri,
                         context = context
                     )
-                }.join()
+                }
                 if (bitmap != null) {
-                    viewModelScope.launch {
-                        rawText = performOCR(bitmap!!)
-                        rawText?.let { postProcessOCRText(it) }
-                        _processingState.value = ProcessingState.Complete
-                    }.join()
+                    performOCR(bitmap!!)?.let { postProcessOCRText(it) }
+                    _processingState.value = ProcessingState.Complete
                 } else {
                     ocrFault()
                 }
@@ -105,6 +105,9 @@ class ScanScreenVM(
     }
 
     //Data management (save, modify or edit products)
+    /**
+     * @param position: position of the item to be deleted
+     */
     fun deleteItem(position: Int) {
         if (position in _products.value.indices) {
             _products.value = _products.value.toMutableList().apply { removeAt(position) }
@@ -116,7 +119,8 @@ class ScanScreenVM(
         viewModelScope.launch(Dispatchers.IO) {
             var supermarketEntity: Supermarket?
             if (supermarket.value != null) {
-                supermarketEntity = supermarketDao.getSupermarketByName(supermarketName = _supermarket.value!!)
+                supermarketEntity =
+                    supermarketDao.getSupermarketByName(supermarketName = _supermarket.value!!)
                 if (supermarketEntity != null) {
                     for (item in products.value.indices) {
                         val product = Product(
@@ -131,7 +135,7 @@ class ScanScreenVM(
                         supermarketDao.upsertSupermarket(Supermarket(name = supermarket.value!!))
                         supermarketEntity = supermarketDao.getSupermarketByName(supermarket.value!!)
                     }.join()
-                    if(supermarketEntity != null) {
+                    if (supermarketEntity != null) {
                         for (item in products.value.indices) {
                             val product = Product(
                                 name = products.value[item],
@@ -140,28 +144,33 @@ class ScanScreenVM(
                             )
                             productDao.upsertProduct(product)
                         }
-                    }
-                    storageFault()
+                    } else storageFault()
 
                 }
-            }
-            ocrFault()
+            } else ocrFault()
         }
     }
 
+    /**
+     * @param position: position of the element to update
+     * @param newProduct: new product name / description. If null it won't update
+     * @param newPrice: new product price. If null it won't update
+     * Updates the product at the given index with either the new price or the new product name.
+     * Only pass either a new product name or price, not both as it won't update both
+     * If you only pass the position, the method won't do anything
+     */
     fun updateProduct(position: Int, newProduct: String? = null, newPrice: Float? = null) {
         if (position in _products.value.indices) {
-            if(newProduct != null) {
-                _products.value = _products.value.toMutableList().apply { this[position] = newProduct }
-            }
-            else if(newPrice != null) {
+            if (newProduct != null) {
+                _products.value =
+                    _products.value.toMutableList().apply { this[position] = newProduct }
+            } else if (newPrice != null) {
                 _prices.value = _prices.value.toMutableList().apply { this[position] = newPrice }
-
             }
         }
     }
 
-    fun updateSuprmarket(newSupermarket: String) {
+    fun updateSupermarket(newSupermarket: String) {
         _supermarket.value = newSupermarket
     }
 
@@ -185,6 +194,9 @@ class ScanScreenVM(
     //Internal helper methods of the viewmodel
 
 
+    /**
+     * @param uri: uri to load the bitmap
+     */
     private suspend fun loadAndSaveBitmap(uri: Uri, context: Context): Bitmap? {
         return withContext(Dispatchers.IO) {
             val bitmap: Bitmap?
@@ -232,7 +244,8 @@ class ScanScreenVM(
         viewModelScope.launch(Dispatchers.Default) {
             val lines = ocrText.lines()
             _supermarket.value = lines[1]
-            val productRegex = Regex("""\d{6,14}\s+((\w+\s?){1,5})""") // Product code + up to 5 words
+            val productRegex =
+                Regex("""\d{6,14}\s+((\w+\s?){1,5})""") // Product code + up to 5 words
             val priceRegex = Regex("""(\d{1,3}[.,]\d{2})""")
 
             //Work internally on a copy
@@ -249,7 +262,8 @@ class ScanScreenVM(
                         updatedProducts.add(productDescription)
 
                         // Find the price
-                        val priceMatch = if (i + 1 < lines.size) priceRegex.find(lines[i + 1]) else null
+                        val priceMatch =
+                            if (i + 1 < lines.size) priceRegex.find(lines[i + 1]) else null
                         val priceString = priceMatch?.value?.replace(",", ".")
                         val price = priceString?.toFloatOrNull() ?: 0.0f
 
@@ -263,6 +277,10 @@ class ScanScreenVM(
     }
 }
 
+/**
+ * Auxiliary method to create the image file. It stores in teh shared preferences a index to keep
+ * track of the pictures and avoid overwriting them
+ */
 fun Context.createImageFile(): Uri {
     val sharedPreferences = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
     var index = sharedPreferences.getInt("last_receipt_index", 0)

@@ -134,7 +134,7 @@ fun ScanScreen(
                 viewModel.deleteItem(position)
             },
             updateSupermarket = { newSupermarket ->
-                viewModel.updateSuprmarket(newSupermarket)
+                viewModel.updateSupermarket(newSupermarket)
             }
         )
 
