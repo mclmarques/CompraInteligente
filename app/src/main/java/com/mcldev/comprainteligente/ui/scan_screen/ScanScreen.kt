@@ -46,6 +46,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -258,12 +259,18 @@ fun ListOfItems(
                             modifier = Modifier.padding(8.dp)
                         ) {
                             OutlinedTextField(
-                                modifier = Modifier.weight(0.7f),
+                                modifier = Modifier
+                                    .weight(0.7f)
+                                    .onFocusEvent { focusState ->
+                                        if (!focusState.isFocused) {
+                                            updateProduct(productName, null, item) // Update only when focus is lost
+                                        }
+                                    },
                                 value = productName,
                                 onValueChange = {
                                     productName = it
                                     isAnyproductInvalid = productName.isEmpty()
-                                    if(isSupermarketValid) updateProduct(productName, null, item)
+                                    //if(isSupermarketValid) updateProduct(productName, null, item)
                                 },
                                 isError = productName.isEmpty(),
                                 supportingText = {
@@ -284,7 +291,7 @@ fun ListOfItems(
                                 value = productPrice,
                                 onValueChange = {
                                     productPrice = it.toString()
-                                    updateProduct(null, productPrice.toFloatOrNull() ?: 0.0f, item)
+                                    //updateProduct(null, productPrice.toFloatOrNull() ?: 0.0f, item)
                                 },
                                 label = {},
                                 keyboardOptions = KeyboardOptions(
