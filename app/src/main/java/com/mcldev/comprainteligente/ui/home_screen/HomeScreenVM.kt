@@ -35,7 +35,6 @@ class HomeScreenVM(
     fun performSearch(query: String) {
         viewModelScope.launch {
             delay(300)
-
             if (query.isNotEmpty()) {
                 _isSearching.value = true
                 // Fetch results from database

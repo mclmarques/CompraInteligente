@@ -126,7 +126,6 @@ fun ScanScreen(
             updateProduct = { newName, newPrice, position ->
                 viewModel.updateProduct(position, newName, newPrice)
             },
-            navBack = { navController.popBackStack() },
             saveProducts = {
                 viewModel.saveProducts()
                 navController.popBackStack()
@@ -167,7 +166,6 @@ fun ListOfItems(
     supermarket: String,
     updateSupermarket: (newName: String) -> Unit,
     updateProduct: (product: String?, price: Float?, position: Int) -> Unit,
-    navBack: () -> Unit,
     saveProducts: () -> Unit,
     deleteProduct: (position: Int) -> Unit
 ) {
@@ -287,10 +285,17 @@ fun ListOfItems(
                             Spacer(Modifier.width(32.dp))
 
                             TextField(
-                                modifier = Modifier.weight(0.3f),
+                                modifier = Modifier
+                                    .weight(0.3f)
+                                    .onFocusEvent { focusState ->
+                                        if (!focusState.isFocused) {
+                                            productPrice = productPrice.replace(",", ".") //Ensrues the price will always be well formarted
+                                            updateProduct(null, productPrice.toFloat(), item)
+                                        }
+                                    },
                                 value = productPrice,
                                 onValueChange = {
-                                    productPrice = it.toString()
+                                    productPrice = it
                                     //updateProduct(null, productPrice.toFloatOrNull() ?: 0.0f, item)
                                 },
                                 label = {},

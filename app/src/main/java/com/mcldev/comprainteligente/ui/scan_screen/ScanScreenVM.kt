@@ -29,10 +29,15 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
 
-/*
-TODO:
-- Refactor code
-- Generate documentation
+/**
+ * @param path: path to load the data of tesseract
+ * The Viewmodel is design to handle as much of the logic as possible and to main a clean architecture
+ * It is organized like this:
+ * Internal global variables
+ * Method to intialize and perform OCR
+ * Methods to work with data using the DAOs
+ * Error methods to update the UI and display the err and possible solutions
+ * Internal methods which in essence are the OCR operation, OCR helper methods and post-processing OCR
  */
 class ScanScreenVM(
     private val path: String?,
@@ -54,7 +59,6 @@ class ScanScreenVM(
     val supermarket = _supermarket.asStateFlow()
 
 
-    //Scanner & OCR
     fun prepareScanner(): GmsDocumentScanner {
         //Scanner stuff
         val options = GmsDocumentScannerOptions.Builder()
@@ -66,7 +70,14 @@ class ScanScreenVM(
         return GmsDocumentScanning.getClient(options)
     }
 
-
+    /**
+     * @param uri: URI of the photo to perform the OCR operation on
+     * This methods using a coroutine will perform the OCR operation and update the ProcessingState once completed
+     * It doesn't return anything because the data is already passed to the postProcessOCRText method that will auto save the data
+     * into the internal golbal varaible.
+     *
+     *
+     */
     fun processImage(context: Context, uri: Uri) {
         var rawText: String?
         _processingState.value = ProcessingState.Loading
@@ -85,18 +96,15 @@ class ScanScreenVM(
                         rawText = performOCR(bitmap!!)
                         rawText?.let { postProcessOCRText(it) }
                         _processingState.value = ProcessingState.Complete
-                        Log.i("state", "Updated state!")
                     }.join()
                 } else {
                     ocrFault()
-                    Log.e("debug", "Fault extracting the image!")
                 }
             }
-        } else Log.e("debug", "Fault! Image URI was null")
+        } else storageFault()
     }
 
     //Data management (save, modify or edit products)
-
     fun deleteItem(position: Int) {
         if (position in _products.value.indices) {
             _products.value = _products.value.toMutableList().apply { removeAt(position) }
@@ -133,11 +141,11 @@ class ScanScreenVM(
                             productDao.upsertProduct(product)
                         }
                     }
-                    //TODO: handle error saving products (cause: failed to create supermarket)
+                    storageFault()
 
                 }
             }
-            //TODO: handle error saving products (cause: no supermarket associated)
+            ocrFault()
         }
     }
 
@@ -174,20 +182,9 @@ class ScanScreenVM(
         _processingState.value = ProcessingState.Error(ErrorCodes.TEXT_EXTRACTION_ERROR)
     }
 
-    fun updateProduct(productName: String? = null, productPrice: Float?, product: Product) {
-        val newProduct = Product(
-            id = product.id,
-            name = if (productName != null) productName else product.name,
-            price = if (productPrice != null) productPrice else product.price,
-            unit = product.unit,
-            supermarketId = product.supermarketId
-        )
-        viewModelScope.launch {
-            productDao.upsertProduct(newProduct)
-        }
-    }
-
     //Internal helper methods of the viewmodel
+
+
     private suspend fun loadAndSaveBitmap(uri: Uri, context: Context): Bitmap? {
         return withContext(Dispatchers.IO) {
             val bitmap: Bitmap?
@@ -201,9 +198,8 @@ class ScanScreenVM(
                 context.contentResolver.openOutputStream(saveUri)?.use { outputStream ->
                     bitmap?.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
                 }
-                Log.i("debug", "Image saved successfully at $saveUri")
             } catch (e: IOException) {
-                Log.e("debug", "Error saving image: ${e.message}")
+                storageFault()
             }
 
             bitmap // Return the loaded Bitmap
@@ -222,12 +218,11 @@ class ScanScreenVM(
             // setup tessBaseApi
             tessBaseAPI = TessBaseAPI()
             tessBaseAPI.init(path, "por") // or other languages
-            Log.i("Tesseract", "Tesseract engine initialized successfully")
             tessBaseAPI.setImage(image)
             tessBaseAPI.setPageSegMode(TessBaseAPI.PageSegMode.PSM_SINGLE_BLOCK)
             val recognizedText = tessBaseAPI.utF8Text
-            Log.i("OCR", recognizedText)
-            tessBaseAPI.recycle() // keep engine alive for multiple uses
+            tessBaseAPI.stop()
+            tessBaseAPI.recycle()
             recognizedText
         }
     }
@@ -240,8 +235,9 @@ class ScanScreenVM(
             val productRegex = Regex("""\d{6,14}\s+((\w+\s?){1,5})""") // Product code + up to 5 words
             val priceRegex = Regex("""(\d{1,3}[.,]\d{2})""")
 
-            val updatedProducts = _products.value.toMutableList() // Work on a mutable copy
-            val updatedPrices = _prices.value.toMutableList() // Work on a mutable copy
+            //Work internally on a copy
+            val updatedProducts = _products.value.toMutableList()
+            val updatedPrices = _prices.value.toMutableList()
 
             for (i in lines.indices) {
                 val productMatch = productRegex.find(lines[i])
@@ -261,12 +257,9 @@ class ScanScreenVM(
                     }
                 }
             }
-
-            // Update state together to prevent inconsistency
             _products.value = updatedProducts
             _prices.value = updatedPrices
         }
-        Log.i("post-process", "Post processing finished!")
     }
 }
 
