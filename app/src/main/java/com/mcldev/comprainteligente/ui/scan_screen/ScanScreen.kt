@@ -80,7 +80,6 @@ import com.mcldev.comprainteligente.ui.util.ErrorCodes
 fun ScanScreen(
     viewModel: ScanScreenVM = viewModel(),
     navController: NavHostController,
-    modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val processingState by viewModel.processingState.collectAsState()
@@ -122,7 +121,7 @@ fun ScanScreen(
         ProcessingState.Complete -> ListOfItems(
             products = products,
             prices = prices,
-            supermarket = supermarket ?: stringResource(R.string.supermercado_nao_encontrado),
+            supermarket = supermarket ?: stringResource(R.string.supermarket_not_found),
             updateProduct = { newName, newPrice, position ->
                 viewModel.updateProduct(position, newName, newPrice)
             },
@@ -155,7 +154,6 @@ fun ScanScreen(
  * @param products: list of products to show.
  * @param prices: list of the prices
  * @param updateProduct: how to update one of the scanned item (price or product description).
- * @param navBack: lambda to navigate to the homescreen and discard changes
  * @param saveProducts: lambda to save the products into the DB
  * @param deleteProduct: lambda that discard a specific item
  */
@@ -204,7 +202,10 @@ fun ListOfItems(
     {
         Column(modifier = Modifier.padding(it)) {
             var supermarketName by remember(supermarket) { mutableStateOf(supermarket) }
-            Row (modifier = Modifier.padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically){
+            Row(
+                modifier = Modifier.padding(horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Text("Supermercado: ")
                 Spacer(modifier = Modifier.width(8.dp))
                 OutlinedTextField(
@@ -213,12 +214,15 @@ fun ListOfItems(
                     onValueChange = {
                         supermarketName = it
                         isSupermarketValid = supermarketName.isNotEmpty()
-                        if(isSupermarketValid) updateSupermarket(supermarketName)
+                        if (isSupermarketValid) updateSupermarket(supermarketName)
                     },
                     isError = !isSupermarketValid,
                     supportingText = {
                         if (!isSupermarketValid) {
-                            Text("O supermercado deve ter um nome", color = MaterialTheme.colorScheme.error) // Error message
+                            Text(
+                                stringResource(R.string.supermarket_not_found),
+                                color = MaterialTheme.colorScheme.error
+                            ) // Error message
                         }
                     },
                     label = {},
@@ -231,10 +235,10 @@ fun ListOfItems(
 
             }
             LazyColumn {
-                items(products.size, key = { index -> products[index] }) { item ->
+                items(products.size) { item ->
                     var productName by remember(products[item]) { mutableStateOf(products[item]) }
                     var productPrice by remember(prices[item]) { mutableStateOf(prices[item].toString()) }
-                    var isAnyproductInvalid by remember { mutableStateOf(false) }
+                    var isAnyProductInvalid by remember { mutableStateOf(false) }
                     val currencyTransformation = VisualTransformation { text ->
                         TransformedText(
                             text = AnnotatedString(text.text + " R$"),
@@ -261,19 +265,26 @@ fun ListOfItems(
                                     .weight(0.7f)
                                     .onFocusEvent { focusState ->
                                         if (!focusState.isFocused) {
-                                            updateProduct(productName, null, item) // Update only when focus is lost
+                                            updateProduct(
+                                                productName,
+                                                null,
+                                                item
+                                            ) // Update only when focus is lost
                                         }
                                     },
                                 value = productName,
                                 onValueChange = {
                                     productName = it
-                                    isAnyproductInvalid = productName.isEmpty()
+                                    isAnyProductInvalid = productName.isEmpty()
                                     //if(isSupermarketValid) updateProduct(productName, null, item)
                                 },
                                 isError = productName.isEmpty(),
                                 supportingText = {
                                     if (productName.isEmpty()) {
-                                        Text("O produto deve ter um nome", color = MaterialTheme.colorScheme.error) // Error message
+                                        Text(
+                                            stringResource(R.string.product_without_name),
+                                            color = MaterialTheme.colorScheme.error
+                                        ) // Error message
                                     }
                                 },
                                 label = {},
@@ -289,7 +300,10 @@ fun ListOfItems(
                                     .weight(0.3f)
                                     .onFocusEvent { focusState ->
                                         if (!focusState.isFocused) {
-                                            productPrice = productPrice.replace(",", ".") //Ensrues the price will always be well formarted
+                                            productPrice = productPrice.replace(
+                                                ",",
+                                                "."
+                                            ) //Ensures the price will always be well formated
                                             updateProduct(null, productPrice.toFloat(), item)
                                         }
                                     },
@@ -297,6 +311,15 @@ fun ListOfItems(
                                 onValueChange = {
                                     productPrice = it
                                     //updateProduct(null, productPrice.toFloatOrNull() ?: 0.0f, item)
+                                },
+                                isError = productPrice == "0.0",
+                                supportingText = {
+                                    if (productPrice == "0.0") {
+                                        Text(
+                                            stringResource(R.string.product_wrong_price),
+                                            color = MaterialTheme.colorScheme.error
+                                        ) // Error message
+                                    }
                                 },
                                 label = {},
                                 keyboardOptions = KeyboardOptions(

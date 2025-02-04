@@ -125,7 +125,6 @@ class MainActivity : ComponentActivity() {
                             }
                             composable(Screen.Scan.route) {
                                 ScanScreen(
-                                    modifier = Modifier,
                                     viewModel = ScanScreenVM(path, productDao = database.productDao(), supermarketDao = database.supermarketDao()),
                                     navController = navController
                                 )
