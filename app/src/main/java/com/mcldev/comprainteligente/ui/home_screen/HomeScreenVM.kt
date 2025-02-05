@@ -4,9 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mcldev.comprainteligente.data.Product
 import com.mcldev.comprainteligente.data.ProductDao
+import com.mcldev.comprainteligente.data.Supermarket
 import com.mcldev.comprainteligente.data.SupermarketDao
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
@@ -23,17 +26,27 @@ class HomeScreenVM(
     private val _searchResults = MutableStateFlow<List<Product>>(emptyList())
     val searchResults = _searchResults.asStateFlow()
 
+    private val _supermarkets = MutableStateFlow<List<Supermarket>>(emptyList())
+    val supermarkets: StateFlow<List<Supermarket>> = _supermarkets
+
+    init {
+        getSupermarkets()
+    }
+
+    private fun getSupermarkets() {
+        viewModelScope.launch(Dispatchers.IO) {  // Run in background thread
+            val result = supermarketDao.getAllSupermarkets()
+            _supermarkets.value = result  // Update StateFlow on the main thread
+        }
+    }
+
     fun onSearchTextChange(text: String) {
         _searchText.value  = text
         performSearch(text)
     }
 
-    suspend fun getSupermarket(supermarketID: Int): String? {
-        return supermarketDao.getSupermarketById(supermarketID)?.name
-    }
-
     fun performSearch(query: String) {
-        viewModelScope.launch {
+        viewModelScope.launch (Dispatchers.IO) {
             delay(300)
             if (query.isNotEmpty()) {
                 _isSearching.value = true

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -23,11 +24,16 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SearchBar
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
@@ -46,6 +52,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.mcldev.comprainteligente.data.Supermarket
 import com.mcldev.comprainteligente.ui.util.Screen
 
 
@@ -63,132 +70,149 @@ fun HomeScreen(
     val padding by animateDpAsState(targetValue = if (expanded) 0.dp else 8.dp)
     val keyboardController = LocalSoftwareKeyboardController.current
     var showMenu by remember { mutableStateOf(false) } // For menu visibility
-    Column (
-        modifier = Modifier
-            .fillMaxSize()
-            .semantics { isTraversalGroup = true })
-    {
-        SearchBar(
-            modifier = Modifier
-                .semantics { traversalIndex = 0f }
-                .padding(horizontal = padding)
-                .fillMaxWidth(),
-            inputField = {
-                SearchBarDefaults.InputField(
-                    onSearch = {
-                        //expanded = false
-                        keyboardController?.hide()
+    val supermarkets by viewModel.supermarkets.collectAsState()
 
-                   },
-                    expanded = expanded,
-                    onExpandedChange = {
-                        expanded = it
-                    },
-                    placeholder = { Text("Buscar") },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                    trailingIcon = {
-                        Icon(
-                            Icons.Default.MoreVert,
-                            contentDescription = null,
-                            modifier = Modifier.clickable {showMenu = !showMenu})
-
-                        AnimatedVisibility(
-                            visible = showMenu,
-                            enter = fadeIn() + slideInVertically { it / 2 },
-                            exit = fadeOut() + slideOutVertically { it / 2 }
-                        ) {
-                            DropdownMenu(
-                                expanded = showMenu,
-                                onDismissRequest = { showMenu = false }
-                            ) {
-                                DropdownMenuItem(
-                                    leadingIcon = {
-                                        Icon(
-                                            Icons.Default.Settings,
-                                            contentDescription = "Settings"
-                                        )
-                                    },
-                                    text = { Text("Settings") },
-                                    onClick = {
-                                        showMenu = false
-                                        // Navigate to Settings screen
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    leadingIcon = {
-                                        Icon(
-                                            Icons.Default.Menu,
-                                            contentDescription = "Receipts"
-                                        )
-                                    },
-                                    text = { Text("Receipts") },
-                                    onClick = {
-                                        showMenu = false
-                                        // Navigate to Receipts screen
-                                    }
-                                )
-                            }
-                        }
-                    },
-                    query = searchText,
-                    onQueryChange = { viewModel.onSearchTextChange(it) }
-                )
-            },
-            expanded = expanded,
-            onExpandedChange = { expanded = it },
-        ) {
-            if (searchResults.isNotEmpty()) {
-                LazyColumn(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    items(searchResults) { product ->
-                        Text(
-                            text = product.name,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    // Define what happens when a search result is clicked
-                                }
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
-                        )
-                    }
-                }
-            } else {
-                Text(
-                    text = "No results found",
-                    modifier = Modifier.align(Alignment.CenterHorizontally).padding(16.dp)
-                )
-            }
-        }
-        LazyColumn (
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp)
-                .weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            items(searchResults) { product ->
-                Row {
-                    Text(text = "TODO: Implement method translate SupermarketID into it's name")
-                    Spacer(modifier = Modifier.width(32.dp))
-                    //TODO: Add a method to compare the price against the other products
-                    Text(text = product.price.toString() + " " + product.unit)
-                }
-
-            }
-
-        }
+    Scaffold (floatingActionButton = {
         FloatingActionButton(
-            onClick = {
-                navController.navigate(Screen.Scan.route)
-            },
-            modifier = Modifier
-                .align(Alignment.End)
-                .padding(32.dp)
+            onClick = { navController.navigate(Screen.Scan.route) },
+            modifier = Modifier.padding(8.dp)
         ) {
             Icon(Icons.Filled.Add, contentDescription = "Add")
         }
+    }){ innerPadding ->
+        Column (modifier = modifier){
+            SearchBar(
+                modifier = Modifier
+                    .padding(horizontal = padding)
+                    .fillMaxWidth(),
+                inputField = {
+                    SearchBarDefaults.InputField(
+                        onSearch = {
+                            //expanded = false
+                            keyboardController?.hide()
 
+                        },
+                        expanded = expanded,
+                        onExpandedChange = {
+                            expanded = it
+                        },
+                        placeholder = { Text("Buscar") },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                        trailingIcon = {
+                            Icon(
+                                Icons.Default.MoreVert,
+                                contentDescription = null,
+                                modifier = Modifier.clickable {showMenu = !showMenu})
+
+                            AnimatedVisibility(
+                                visible = showMenu,
+                                enter = fadeIn() + slideInVertically { it / 2 },
+                                exit = fadeOut() + slideOutVertically { it / 2 }
+                            ) {
+                                DropdownMenu(
+                                    expanded = showMenu,
+                                    onDismissRequest = { showMenu = false }
+                                ) {
+                                    DropdownMenuItem(
+                                        leadingIcon = {
+                                            Icon(
+                                                Icons.Default.Settings,
+                                                contentDescription = "Settings"
+                                            )
+                                        },
+                                        text = { Text("Settings") },
+                                        onClick = {
+                                            showMenu = false
+                                            // Navigate to Settings screen
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        leadingIcon = {
+                                            Icon(
+                                                Icons.Default.Menu,
+                                                contentDescription = "Receipts"
+                                            )
+                                        },
+                                        text = { Text("Receipts") },
+                                        onClick = {
+                                            showMenu = false
+                                            // Navigate to Receipts screen
+                                        }
+                                    )
+                                }
+                            }
+                        },
+                        query = searchText,
+                        onQueryChange = { viewModel.onSearchTextChange(it) }
+                    )
+                },
+                expanded = expanded,
+                onExpandedChange = { expanded = it },
+            ) {
+                if (searchResults.isNotEmpty()) {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        items(searchResults) { product ->
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(8.dp),
+                                elevation = CardDefaults.cardElevation(4.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(text = product.name)
+                                    Text(text = String.format("%.2f R$", product.price))
+                                }
+                            }
+                            
+                        }
+                    }
+                } else {
+                    Text(
+                        text = "No results found",
+                        modifier = Modifier.align(Alignment.CenterHorizontally).padding(16.dp)
+                    )
+                }
+            }
+            LazyColumn(modifier = modifier.padding(innerPadding)) {
+                val minPrice = supermarkets.minOfOrNull { it.averagePrice } ?: 0.0
+                val maxPrice = supermarkets.maxOfOrNull { it.averagePrice } ?: 0.0
+
+                items(supermarkets) { supermarket: Supermarket ->
+                    val priceColor = when (supermarket.averagePrice) {
+                        minPrice -> Color(0xFF008000)
+                        maxPrice -> Color.Red
+                        else -> MaterialTheme.colorScheme.onSurface
+                    }
+
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp),
+                        elevation = CardDefaults.cardElevation(4.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(text = supermarket.name, style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                text = String.format("%.2f R$", supermarket.averagePrice ?: 0f),                                style = MaterialTheme.typography.bodyLarge,
+                                color = priceColor
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }

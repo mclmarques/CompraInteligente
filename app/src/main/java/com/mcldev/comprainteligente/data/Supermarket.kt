@@ -9,5 +9,6 @@ data class Supermarket (
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
     val name: String,
-    val localization: Location? = null
+    val localization: Location? = null,
+    val averagePrice: Float
 )

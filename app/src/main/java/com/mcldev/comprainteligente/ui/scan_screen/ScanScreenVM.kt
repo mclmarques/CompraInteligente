@@ -123,6 +123,7 @@ class ScanScreenVM(
                     supermarketDao.getSupermarketByName(supermarketName = _supermarket.value!!)
                 if (supermarketEntity != null) {
                     for (item in products.value.indices) {
+                        supermarketDao.upsertSupermarket(Supermarket(name = supermarket.value!!, averagePrice = _prices.value.average().toFloat()))
                         val product = Product(
                             name = products.value[item],
                             price = prices.value[item],
@@ -132,7 +133,7 @@ class ScanScreenVM(
                     }
                 } else {
                     viewModelScope.launch(Dispatchers.IO) {
-                        supermarketDao.upsertSupermarket(Supermarket(name = supermarket.value!!))
+                        supermarketDao.upsertSupermarket(Supermarket(name = supermarket.value!!, averagePrice = _prices.value.average().toFloat()))
                         supermarketEntity = supermarketDao.getSupermarketByName(supermarket.value!!)
                     }.join()
                     if (supermarketEntity != null) {
