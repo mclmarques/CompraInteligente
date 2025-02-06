@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -40,6 +41,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,6 +51,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -156,6 +159,11 @@ fun ScanScreen(
  * @param updateProduct: how to update one of the scanned item (price or product description).
  * @param saveProducts: lambda to save the products into the DB
  * @param deleteProduct: lambda that discard a specific item
+ * this method also guarantees:
+ * Supermarket name is not empty
+ * All products have a name
+ * All products have a price (execept if the user hides the keyboard and confirms the entry as the checks are performed on focus change).
+ * however this isn't an issue
  */
 @Composable
 fun ListOfItems(
@@ -168,16 +176,22 @@ fun ListOfItems(
     deleteProduct: (position: Int) -> Unit
 ) {
     var isSupermarketValid by remember { mutableStateOf(supermarket.isNotEmpty()) }
+
+    // Derived state: Ensures all products are non-empty and prices are > 0.0
+    val validProducts by remember(products, prices) {
+        derivedStateOf {
+            products.all { it.isNotEmpty() } && prices.all { it > 0.0f }
+        }
+    }
+
     Scaffold(
         floatingActionButton = {
             Row {
                 Button(
                     onClick = saveProducts,
-                    shape = CircleShape, // Makes it circular
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Green.copy(alpha = 0.70f), // Greenish, adapting to theme
-                    ),
-                    enabled = isSupermarketValid
+                    shape = CircleShape,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Green.copy(alpha = 0.70f)),
+                    enabled = isSupermarketValid && validProducts // Uses computed validation
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.confirm_24),
@@ -188,20 +202,18 @@ fun ListOfItems(
                 Spacer(Modifier.width(8.dp))
                 Button(
                     onClick = saveProducts,
-                    shape = CircleShape, // Makes it circular
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Red.copy(alpha = 0.70f), // Greenish, adapting to theme
-                    )
+                    shape = CircleShape,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red.copy(alpha = 0.70f))
                 ) {
                     Icon(painter = painterResource(R.drawable.cancel_24), "cancel")
                 }
             }
         },
         floatingActionButtonPosition = FabPosition.Center
-    )
-    {
-        Column(modifier = Modifier.padding(it)) {
+    ) { paddingValues ->
+        Column(modifier = Modifier.padding(paddingValues)) {
             var supermarketName by remember(supermarket) { mutableStateOf(supermarket) }
+
             Row(
                 modifier = Modifier.padding(horizontal = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -222,39 +234,33 @@ fun ListOfItems(
                             Text(
                                 stringResource(R.string.supermarket_not_found),
                                 color = MaterialTheme.colorScheme.error
-                            ) // Error message
+                            )
                         }
                     },
-                    label = {},
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Text,
-                        imeAction = ImeAction.Done
-                    ),
                     singleLine = true
                 )
-
             }
+
             LazyColumn {
                 items(products.size) { item ->
                     var productName by remember(products[item]) { mutableStateOf(products[item]) }
                     var productPrice by remember(prices[item]) { mutableStateOf(prices[item].toString()) }
-                    var isAnyProductInvalid by remember { mutableStateOf(false) }
+                    val focusManager = LocalFocusManager.current
                     val currencyTransformation = VisualTransformation { text ->
                         TransformedText(
-                            text = AnnotatedString(text.text + " R$"),
+                            text = AnnotatedString("$text R$"),
                             offsetMapping = object : OffsetMapping {
-                                override fun originalToTransformed(offset: Int): Int = offset
-                                override fun transformedToOriginal(offset: Int): Int =
-                                    offset.coerceAtMost(text.length)
+                                override fun originalToTransformed(offset: Int) = offset
+                                override fun transformedToOriginal(offset: Int) = offset.coerceAtMost(text.length)
                             }
                         )
                     }
+
                     Card(
                         modifier = Modifier
                             .padding(horizontal = 8.dp)
                             .padding(top = 8.dp)
                     ) {
-
                         Row(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically,
@@ -265,18 +271,12 @@ fun ListOfItems(
                                     .weight(0.7f)
                                     .onFocusEvent { focusState ->
                                         if (!focusState.isFocused) {
-                                            updateProduct(
-                                                productName,
-                                                null,
-                                                item
-                                            ) // Update only when focus is lost
+                                            updateProduct(productName, null, item)
                                         }
                                     },
                                 value = productName,
                                 onValueChange = {
                                     productName = it
-                                    isAnyProductInvalid = productName.isEmpty()
-                                    //if(isSupermarketValid) updateProduct(productName, null, item)
                                 },
                                 isError = productName.isEmpty(),
                                 supportingText = {
@@ -284,15 +284,15 @@ fun ListOfItems(
                                         Text(
                                             stringResource(R.string.product_without_name),
                                             color = MaterialTheme.colorScheme.error
-                                        ) // Error message
+                                        )
                                     }
                                 },
-                                label = {},
-                                keyboardOptions = KeyboardOptions(
-                                    keyboardType = KeyboardType.Text,
-                                    imeAction = ImeAction.Done // Or ImeAction.Next, etc.
-                                )
+                                singleLine = true,
+                                keyboardActions = KeyboardActions({
+                                    focusManager.clearFocus()
+                                }),
                             )
+
                             Spacer(Modifier.width(32.dp))
 
                             TextField(
@@ -300,33 +300,33 @@ fun ListOfItems(
                                     .weight(0.3f)
                                     .onFocusEvent { focusState ->
                                         if (!focusState.isFocused) {
-                                            productPrice = productPrice.replace(
-                                                ",",
-                                                "."
-                                            ) //Ensures the price will always be well formated
-                                            updateProduct(null, productPrice.toFloat(), item)
+                                            productPrice = productPrice.replace(",", ".")
+                                            updateProduct(null, productPrice.toFloatOrNull() ?: 0.0f, item)
                                         }
                                     },
                                 value = productPrice,
                                 onValueChange = {
+
                                     productPrice = it
-                                    //updateProduct(null, productPrice.toFloatOrNull() ?: 0.0f, item)
                                 },
-                                isError = productPrice == "0.0",
+                                isError = productPrice.toFloatOrNull() == null || productPrice.toFloat() == 0.0f,
                                 supportingText = {
-                                    if (productPrice == "0.0") {
+                                    if (productPrice.toFloatOrNull() == null || productPrice.toFloat() == 0.0f) {
                                         Text(
                                             stringResource(R.string.product_wrong_price),
                                             color = MaterialTheme.colorScheme.error
-                                        ) // Error message
+                                        )
                                     }
                                 },
-                                label = {},
                                 keyboardOptions = KeyboardOptions(
                                     keyboardType = KeyboardType.Number,
-                                    imeAction = ImeAction.Done // Or ImeAction.Next, etc.
+                                    imeAction = ImeAction.Done
                                 ),
+                                keyboardActions = KeyboardActions({
+                                    focusManager.clearFocus()
+                                }),
                                 visualTransformation = currencyTransformation,
+
                             )
 
                             Spacer(Modifier.width(16.dp))
@@ -334,8 +334,8 @@ fun ListOfItems(
                             Button(
                                 onClick = { deleteProduct(item) },
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color.Red.copy(0.75f), // Background color
-                                    contentColor = Color.White  // Text/Icon color
+                                    containerColor = Color.Red.copy(0.75f),
+                                    contentColor = Color.White
                                 )
                             ) {
                                 Icon(
@@ -350,6 +350,7 @@ fun ListOfItems(
         }
     }
 }
+
 
 /**
  * @param navController: navController instance used to go back to the home screen

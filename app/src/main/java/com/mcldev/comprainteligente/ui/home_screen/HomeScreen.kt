@@ -1,7 +1,10 @@
 package com.mcldev.comprainteligente.ui.home_screen
 
+import android.app.Activity
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -46,6 +49,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.semantics
@@ -71,6 +75,23 @@ fun HomeScreen(
     val keyboardController = LocalSoftwareKeyboardController.current
     var showMenu by remember { mutableStateOf(false) } // For menu visibility
     val supermarkets by viewModel.supermarkets.collectAsState()
+    val selectionMode = viewModel.selectionMode.value
+    val selectedItems = viewModel.selectedItems
+    // Rotation Animation
+    val rotationAngle by animateFloatAsState(
+        targetValue = if (selectionMode) 0f else 180f, // Rotate to 0 for Delete, 180 for Add
+        label = "Rotation Animation"
+    )
+    //val activity = LocalContext.current as? Activity
+
+    BackHandler {
+        if (selectionMode) {
+            viewModel.toggleSelectionMode()
+        }
+        else {
+            //activity?.finish()
+        }
+    }
 
     Scaffold (floatingActionButton = {
         FloatingActionButton(
@@ -167,9 +188,10 @@ fun HomeScreen(
                                         .padding(16.dp),
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Text(text = product.name)
+                                    Text(text = product.productName)
                                     Text(text = String.format("%.2f R$", product.price))
                                 }
+                                Text(text = product.supermarketName, modifier = Modifier.padding(8.dp))
                             }
                             
                         }

@@ -1,5 +1,7 @@
 package com.mcldev.comprainteligente.ui.home_screen
 
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mcldev.comprainteligente.data.Product
@@ -23,14 +25,25 @@ class HomeScreenVM(
     private val _isSearching = MutableStateFlow(false)
     val isSearching = _isSearching.asStateFlow()
 
-    private val _searchResults = MutableStateFlow<List<Product>>(emptyList())
+    private val _searchResults = MutableStateFlow<List<searchResult>>(emptyList())
     val searchResults = _searchResults.asStateFlow()
 
     private val _supermarkets = MutableStateFlow<List<Supermarket>>(emptyList())
     val supermarkets: StateFlow<List<Supermarket>> = _supermarkets
 
+    var selectionMode = mutableStateOf(false)
+        private set
+
+    private val _selectedItems = mutableStateListOf<Supermarket>()
+    val selectedItems: List<Supermarket> get() = _selectedItems
+
     init {
         getSupermarkets()
+    }
+
+    fun toggleSelectionMode() {
+        selectionMode.value = !selectionMode.value
+        if (!selectionMode.value) clearSelection()
     }
 
     private fun getSupermarkets() {
@@ -40,18 +53,49 @@ class HomeScreenVM(
         }
     }
 
+    fun toggleItemSelection(supermarket: Supermarket) {
+        if (_selectedItems.contains(supermarket)) {
+            _selectedItems.remove(supermarket)
+        } else {
+            _selectedItems.add(supermarket)
+        }
+    }
+
+    fun clearSelection() {
+        _selectedItems.clear()
+    }
+
+    fun deleteSelectedItems() {
+        viewModelScope.launch (Dispatchers.IO) {
+            _selectedItems.forEach { supermarketDao.deleteSupermarket(it) }
+            clearSelection()
+            toggleSelectionMode()
+        }
+    }
+
     fun onSearchTextChange(text: String) {
         _searchText.value  = text
         performSearch(text)
     }
 
     fun performSearch(query: String) {
+        val results: MutableList<searchResult> = mutableListOf()
         viewModelScope.launch (Dispatchers.IO) {
             delay(300)
             if (query.isNotEmpty()) {
                 _isSearching.value = true
                 // Fetch results from database
-                val results = productDao.getProductsByName(query)
+                val products = productDao.getProductsByName(query)
+                var supermarket: Supermarket?
+                var supermarketName: String?
+                for (product in products) {
+                    if(product.supermarketId != null) {
+                        supermarket = supermarketDao.getSupermarketById(product.supermarketId)
+                        supermarketName = supermarket?.name ?: "Supermercado sem nome"
+                        results.add(searchResult(product.name,product.price,supermarketName))
+
+                    }
+                }
                 _searchResults.value = results
                 _isSearching.value = false
             } else {
@@ -68,3 +112,9 @@ class HomeScreenVM(
     }
 
 }
+
+data class searchResult(
+    val productName: String,
+    val price: Float,
+    val supermarketName: String
+)

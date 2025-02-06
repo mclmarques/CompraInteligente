@@ -115,15 +115,21 @@ class ScanScreenVM(
         }
     }
 
+    /**
+     * Launches a coroutine and checks if a supermarket name was saved. If it was it searches to see if that supermarket
+     * is on the DB. This is needed as all scanned products need to be linked to a supermarket.
+     * If no supermarket is found a new one is created.
+     * If the process of creating a new supermarket fails, an storage error is triggered as it is the
+     * most likely cause of the issue
+     */
     fun saveProducts() {
         viewModelScope.launch(Dispatchers.IO) {
             var supermarketEntity: Supermarket?
             if (supermarket.value != null) {
-                supermarketEntity =
-                    supermarketDao.getSupermarketByName(supermarketName = _supermarket.value!!)
+                supermarketEntity = supermarketDao.getSupermarketByName(supermarketName = _supermarket.value!!)
                 if (supermarketEntity != null) {
+                    supermarketDao.upsertSupermarket(Supermarket(name = supermarket.value!!, averagePrice = _prices.value.average().toFloat()))
                     for (item in products.value.indices) {
-                        supermarketDao.upsertSupermarket(Supermarket(name = supermarket.value!!, averagePrice = _prices.value.average().toFloat()))
                         val product = Product(
                             name = products.value[item],
                             price = prices.value[item],
@@ -132,16 +138,17 @@ class ScanScreenVM(
                         productDao.upsertProduct(product)
                     }
                 } else {
-                    viewModelScope.launch(Dispatchers.IO) {
-                        supermarketDao.upsertSupermarket(Supermarket(name = supermarket.value!!, averagePrice = _prices.value.average().toFloat()))
-                        supermarketEntity = supermarketDao.getSupermarketByName(supermarket.value!!)
-                    }.join()
+                    /*viewModelScope.launch(Dispatchers.IO) {
+
+                    }.join()*/
+                    supermarketDao.upsertSupermarket(Supermarket(name = supermarket.value!!, averagePrice = _prices.value.average().toFloat()))
+                    supermarketEntity = supermarketDao.getSupermarketByName(supermarket.value!!)
                     if (supermarketEntity != null) {
                         for (item in products.value.indices) {
                             val product = Product(
                                 name = products.value[item],
                                 price = prices.value[item],
-                                supermarketId = supermarketEntity!!.id
+                                supermarketId = supermarketEntity.id
                             )
                             productDao.upsertProduct(product)
                         }

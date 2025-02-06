@@ -21,4 +21,5 @@ interface SupermarketDao {
 
     @Query("SELECT * FROM supermarket WHERE name = :supermarketName")
     fun getSupermarketByName(supermarketName: String): Supermarket?
+
 }

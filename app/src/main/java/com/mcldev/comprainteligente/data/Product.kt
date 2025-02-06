@@ -9,5 +9,5 @@ data class Product (
     val name: String,
     val price: Float,
     val unit: String? = null,
-    val supermarketId: Int? = null
+    val supermarketId: Int
 )
