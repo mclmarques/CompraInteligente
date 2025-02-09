@@ -1,8 +1,8 @@
 <resources>
     <string name="app_name">Compra inteligente</string>
-    <string name="err_launch_camera_title">
-        Oops! Camera app is not available or failed.
-    </string>
+
+    <!--Error strings (title followed by description if a description is needed)-->
+    <string name="err_launch_camera_title">Oops! Camera app is not available or failed.</string>
     <string name="err_launch_camera">
         This is likely because the camera app is disabled. You can enable it in the settings or install another camera app.
 
@@ -12,6 +12,7 @@
         Oops! We couldn\'t read the text from your image.
 
     </string>
+
     <string name="err_text_extraction">
        This might happen if the image quality isn\'t good enough or if there was an issue processing it.\n
         Try these steps to fix it:\n\n
@@ -19,8 +20,8 @@
         2. Make sure the text in the image is clear, well-lit, and easy to read.\n
         3. Capture a new image and repeat the process.\n
         If the problem persists, feel free to contact support for help!\n
-
     </string>
+
     <string name="err_saving_data_title">Error Saving Receipt</string>
     <string name="err_saving_data">
         We "couldn't" save your receipt and its data to your "phone's" storage.\n This could be due to one of the following reasons:\n
@@ -32,15 +33,26 @@
         3. If the problem persists, restart your phone\n\n
         If none of these steps worked, feel free to contact support for help
     </string>
-    <string name="processing">Processing the image!</string>
     <string name="err_unsupported_title">Oops! This app might not work here</string>
     <string name="err_unsupported">This app needs a bit more power to run smoothly.\nThe app requires at least 2GB of RAM to be able to function.</string>
+
     <string name="err_storage_title">Oops! Something went wrong!</string>
     <string name="err_storage">This apps needs to save a little file on this device to function properly, but wasn\'t able to.
         \nThis might be because your phone is running low on storage space.
         \n\nTry freeing up some space by deleting unused files or photos, then try saving again.</string>
-    <string name="supermarket_not_found">Ops! Não encontramos o nome supermercado.</string>
-    <string name="product_without_name">O produtp deve ter um nome</string>
-    <string name="product_wrong_price">O preço parece errado</string>
 
+    <string name="supermarket_not_found">Ops! We didn\'t find the name of this supermarket</string>
+    <string name="product_without_name">Product name can\'t be empty</string>
+    <string name="product_wrong_price">This price seems to be incorrect…</string>
+
+    <!--Other UI elements, like smaller texts-->
+
+    <string name="processing">Processing the image!</string>
+    <string name="search">Search…</string>
+
+
+    <!--content descriptions-->
+    <string name="delete_supermarket_cd">Delete selected supermarkets</string>
+    <string name="scan_receipt_cd">Add products by scanning a receipt</string>
+    <string name="cancel_cd">C file ancel</string>
 </resources>

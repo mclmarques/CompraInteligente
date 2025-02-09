@@ -162,8 +162,10 @@ fun ScanScreen(
  * this method also guarantees:
  * Supermarket name is not empty
  * All products have a name
- * All products have a price (execept if the user hides the keyboard and confirms the entry as the checks are performed on focus change).
- * however this isn't an issue
+ * All products have a valid price***
+ * Note: as the checks and updates are performed when the focus is lost, it is possible to enter valid a value, for example, 10.0,
+ * and change it to -10.0 and just hide the keyboard, as this don't change the focus. However, as the values are also updated on focus change,
+ * the value is never updated, so the old valid value will be saved instead (in this case, 10.0)
  */
 @Composable
 fun ListOfItems(
@@ -205,7 +207,7 @@ fun ListOfItems(
                     shape = CircleShape,
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Red.copy(alpha = 0.70f))
                 ) {
-                    Icon(painter = painterResource(R.drawable.cancel_24), "cancel")
+                    Icon(painter = painterResource(R.drawable.cancel_24), stringResource(R.string.cancel_cd))
                 }
             }
         },
