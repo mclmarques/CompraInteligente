@@ -2,7 +2,6 @@ package com.mcldev.comprainteligente
 
 import android.app.ActivityManager
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -22,71 +21,23 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.mcldev.comprainteligente.data.DataBase
 import com.mcldev.comprainteligente.ui.home_screen.HomeScreen
 import com.mcldev.comprainteligente.ui.home_screen.HomeScreenVM
-import com.mcldev.comprainteligente.ui.home_screen.HomeScreenVmFactory
 import com.mcldev.comprainteligente.ui.scan_screen.ScanScreen
 import com.mcldev.comprainteligente.ui.scan_screen.ScanScreenVM
 import com.mcldev.comprainteligente.ui.theme.CompraInteligenteTheme
 import com.mcldev.comprainteligente.ui.util.ErrorCodes
 import com.mcldev.comprainteligente.ui.util.Screen
-import java.io.File
-import java.io.FileOutputStream
+import org.koin.android.ext.android.inject
+import org.koin.androidx.viewmodel.ext.android.getViewModel
 
 class MainActivity : ComponentActivity() {
-    private val database: DataBase by lazy {
-        Application.getDatabase()
-    }
-
-    /**
-     * This methods creates the /tessdata directory and populate it with the data provided from the
-     * assets folder
-     * @return: String containning the PATH to the tesseract data folder or NULL if it fails
-     */
-    private fun createTessFolder(): String? {
-        val path = getExternalFilesDir(null)?.absolutePath + "/tesseract"
-        val tessDataDirectory = File("$path/tessdata")
-        if (!tessDataDirectory.exists() && !tessDataDirectory.mkdirs()) {
-            Log.e("Tesseract", "Failed to create Tesseract directory")
-            return null
-        }
-        val tessDataFile = File(tessDataDirectory, "por.traineddata")
-        if (!tessDataFile.exists()) {
-            try {
-                val inputStream = assets.open("tessdata/por.traineddata")
-                val outputStream = FileOutputStream(tessDataFile)
-                val buffer = ByteArray(1024)
-                var length = inputStream.read(buffer)
-                while (length > 0) {
-                    outputStream.write(buffer, 0, length)
-                    length = inputStream.read(buffer)
-                }
-                inputStream.close()
-                outputStream.close()
-                Log.i("Tesseract", "por.traineddata copied to device")
-            } catch (e: Exception) {
-                Log.e("Tesseract", "Error copying por.traineddata: ", e)
-                return null
-            }
-        }
-        return path;
-    }
-
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        // Create the ViewModel with the DAOs
-        val homeScreenViewModel = ViewModelProvider(
-            this,
-            HomeScreenVmFactory(database.productDao(), database.supermarketDao())
-        )[HomeScreenVM::class.java]
-
         setContent {
             CompraInteligenteTheme {
                 Surface {
@@ -95,8 +46,9 @@ class MainActivity : ComponentActivity() {
                     val memInfo = ActivityManager.MemoryInfo()
                     actManager.getMemoryInfo(memInfo)
                     val totalMemory = memInfo.totalMem.toDouble() / (1024 * 1024 * 1024)
-                    val path = createTessFolder()
-                    //Checks requirements and them launches the app
+                    val path by inject<String>()
+
+                    //Checks requirements and them launches the app if they pass
                     if (totalMemory < 2) {
                         AlertDialog(
                             onConfirmation = {finish()},
@@ -111,6 +63,9 @@ class MainActivity : ComponentActivity() {
                             icon = R.drawable.warning_ic
                         )
                     } else {
+                        //Launches the app
+                        val homeScreenVM = getViewModel<HomeScreenVM>()
+                        val scanScreenVM = getViewModel<ScanScreenVM>()
                         val navController = rememberNavController()
                         NavHost(
                             navController = navController,
@@ -119,13 +74,13 @@ class MainActivity : ComponentActivity() {
                             composable(Screen.Home.route) {
                                 HomeScreen(
                                     modifier = Modifier,
-                                    viewModel = homeScreenViewModel,
+                                    viewModel = homeScreenVM,
                                     navController = navController
                                 )
                             }
                             composable(Screen.Scan.route) {
                                 ScanScreen(
-                                    viewModel = ScanScreenVM(path, productDao = database.productDao(), supermarketDao = database.supermarketDao()),
+                                    viewModel = scanScreenVM,
                                     navController = navController
                                 )
                             }

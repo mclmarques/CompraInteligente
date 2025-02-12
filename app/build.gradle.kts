@@ -81,4 +81,9 @@ dependencies {
     //Scanner utility ML
     implementation(libs.play.services.mlkit.document.scanner)
 
+    //Koin
+    // Koin for Android
+    implementation(libs.koin.android)
+    implementation(libs.koin.test)
+
 }
