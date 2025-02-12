@@ -128,7 +128,15 @@ class ScanScreenVM(
             if (supermarket.value != null) {
                 supermarketEntity = supermarketDao.getSupermarketByName(supermarketName = _supermarket.value!!)
                 if (supermarketEntity != null) {
-                    supermarketDao.upsertSupermarket(Supermarket(name = supermarket.value!!, averagePrice = _prices.value.average().toFloat()))
+                    val oldCount = supermarketDao.getProductCount(supermarketEntity.id)
+                    if(oldCount == 0) {
+                        supermarketDao.upsertSupermarket(supermarketEntity.copy(averagePrice = _prices.value.average().toFloat()))
+                    }
+                    else {
+                        val average = ((supermarketEntity.averagePrice * oldCount) + _prices.value.sum()) / (oldCount + _prices.value.size)
+                        supermarketDao.upsertSupermarket(supermarketEntity.copy(averagePrice = average))
+
+                    }
                     for (item in products.value.indices) {
                         val product = Product(
                             name = products.value[item],
@@ -138,9 +146,6 @@ class ScanScreenVM(
                         productDao.upsertProduct(product)
                     }
                 } else {
-                    /*viewModelScope.launch(Dispatchers.IO) {
-
-                    }.join()*/
                     supermarketDao.upsertSupermarket(Supermarket(name = supermarket.value!!, averagePrice = _prices.value.average().toFloat()))
                     supermarketEntity = supermarketDao.getSupermarketByName(supermarket.value!!)
                     if (supermarketEntity != null) {
