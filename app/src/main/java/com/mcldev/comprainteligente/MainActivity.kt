@@ -28,6 +28,7 @@ import com.mcldev.comprainteligente.ui.home_screen.HomeScreen
 import com.mcldev.comprainteligente.ui.home_screen.HomeScreenVM
 import com.mcldev.comprainteligente.ui.scan_screen.ScanScreen
 import com.mcldev.comprainteligente.ui.scan_screen.ScanScreenVM
+import com.mcldev.comprainteligente.ui.settings_screen.SettingsScreen
 import com.mcldev.comprainteligente.ui.theme.CompraInteligenteTheme
 import com.mcldev.comprainteligente.ui.util.ErrorCodes
 import com.mcldev.comprainteligente.ui.util.Screen
@@ -69,7 +70,7 @@ class MainActivity : ComponentActivity() {
                         val navController = rememberNavController()
                         NavHost(
                             navController = navController,
-                            startDestination = Screen.Home.route
+                            startDestination = Screen.Settings.route
                         ) {
                             composable(Screen.Home.route) {
                                 HomeScreen(
@@ -85,7 +86,7 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
                             //composable(Screen.Receipts.route) { ReceiptsScreen(modifier = Modifier, viewModel = homeScreenViewModel, navController = navController) }
-                            //composable(Screen.Settings.route) { SettingsScreen(modifier = Modifier, viewModel = homeScreenViewModel, navController = navController) }
+                            composable(Screen.Settings.route) { SettingsScreen() }
                         }
                     }
                 }
