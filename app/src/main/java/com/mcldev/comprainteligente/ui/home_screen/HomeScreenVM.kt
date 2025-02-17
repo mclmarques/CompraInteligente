@@ -127,7 +127,7 @@ class HomeScreenVM(
                     //Only show complete search items. Thogh as supermarket name is mandatory on the db, this is an edge case
                     if (supermarket != null) {
                         supermarketName = supermarket.name
-                        results.add(searchResult(product.name, product.price, supermarketName))
+                        results.add(searchResult(product.name, product.price, supermarketName, date = product.date))
                     }
                 }
                 _searchResults.value = results
@@ -147,5 +147,6 @@ Otherwise for each search result, there would be necessary to make a db search t
 data class searchResult(
     val productName: String,
     val price: Float,
-    val supermarketName: String
+    val supermarketName: String,
+    val date: Long
 )

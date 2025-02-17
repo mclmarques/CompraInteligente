@@ -141,7 +141,8 @@ class ScanScreenVM(
                         val product = Product(
                             name = products.value[item],
                             price = prices.value[item],
-                            supermarketId = supermarketEntity.id
+                            supermarketId = supermarketEntity.id,
+                            date = System.currentTimeMillis()
                         )
                         productDao.upsertProduct(product)
                     }
@@ -153,7 +154,8 @@ class ScanScreenVM(
                             val product = Product(
                                 name = products.value[item],
                                 price = prices.value[item],
-                                supermarketId = supermarketEntity.id
+                                supermarketId = supermarketEntity.id,
+                                date = System.currentTimeMillis()
                             )
                             productDao.upsertProduct(product)
                         }

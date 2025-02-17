@@ -10,4 +10,9 @@ interface ProductDao {
 
     @Query("SELECT * FROM product WHERE name LIKE '%' || :productName || '%'")
     fun getProductsByName(productName: String): List<Product>
+
+    @Query("DELETE FROM product WHERE date < :expirationTime")
+    suspend fun timeBasedDelete(expirationTime: Long)
+
+
 }

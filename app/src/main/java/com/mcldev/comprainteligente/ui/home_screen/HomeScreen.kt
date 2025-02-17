@@ -10,8 +10,10 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -46,6 +48,8 @@ import com.mcldev.comprainteligente.R
 import com.mcldev.comprainteligente.data.Supermarket
 import com.mcldev.comprainteligente.ui.util.Screen
 import java.text.NumberFormat
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
 /**
@@ -219,7 +223,15 @@ fun HomeScreen(
                                 ) {
                                     Column(verticalArrangement = Arrangement.Center) {
                                         Text(text = product.productName)
-                                        Text(text = product.supermarketName)
+                                        Row (verticalAlignment = Alignment.CenterVertically){
+                                            Text(text = product.supermarketName)
+                                            Spacer(Modifier.width(16.dp))
+                                            Text(
+                                                text = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(product.date)),
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
 
                                     }
                                     Text(text = currencyFormatter.format(product.price))

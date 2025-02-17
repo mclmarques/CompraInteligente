@@ -2,6 +2,7 @@ package com.mcldev.comprainteligente.data
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
+import java.util.Date
 
 @Entity(
     tableName = "product",
@@ -20,5 +21,6 @@ data class Product (
     val name: String,
     val price: Float,
     val unit: String? = null,
-    val supermarketId: Int
+    val supermarketId: Int,
+    val date: Long
 )
