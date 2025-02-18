@@ -2,8 +2,13 @@ package com.mcldev.comprainteligente.ui.home_screen
 
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -19,9 +24,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -34,6 +44,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -71,7 +82,7 @@ fun HomeScreen(
     val keyboardController = LocalSoftwareKeyboardController.current
 
     //little menu (3 dots). Disabled for the release of v1.0 but expected to be enabled in future releases
-    //var showMenu by remember { mutableStateOf(false) }
+    var showMenu by remember { mutableStateOf(false) }
 
     //Supermarkets shown in the lazy column
     val supermarkets by viewModel.supermarkets.collectAsState()
@@ -145,11 +156,7 @@ fun HomeScreen(
                         },
                         placeholder = { Text(stringResource(R.string.search)) },
                         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                        /*
-                        NOTE: In future releases this code should be enabled. For first release the corresponding screens
-                        will not be ready and this section despite being functional was disabled
-                         */
-                        /*trailingIcon = {
+                        trailingIcon = {
                             Icon(
                                 Icons.Default.MoreVert,
                                 contentDescription = null,
@@ -174,10 +181,11 @@ fun HomeScreen(
                                         text = { Text("Settings") },
                                         onClick = {
                                             showMenu = false
-                                            // Navigate to Settings screen
+                                            navController.navigate(Screen.Settings.route)
                                         }
                                     )
-                                    DropdownMenuItem(
+                                    //TODO: in future releases, implement the receipts screen and enable this code to reach that screen
+                                    /*DropdownMenuItem(
                                         leadingIcon = {
                                             Icon(
                                                 Icons.Default.Menu,
@@ -189,10 +197,10 @@ fun HomeScreen(
                                             showMenu = false
                                             // Navigate to Receipts screen
                                         }
-                                    )
+                                    )*/
                                 }
                             }
-                        },*/
+                        },
                         query = searchText,
                         onQueryChange = { viewModel.onSearchTextChange(it) }
                     )

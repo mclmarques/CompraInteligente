@@ -23,9 +23,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -41,7 +47,7 @@ import com.mcldev.comprainteligente.R
 @Composable
 fun SettingsScreen(
     //modifier: Modifier,
-    //navController: NavHostController
+    navController: NavHostController
 ) {
     Scaffold { padding ->
         Column (
@@ -51,10 +57,40 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.Top,
             horizontalAlignment = Alignment.CenterHorizontally
             ) {
-            Text(
-                text = "General",
-                style = MaterialTheme.typography.headlineSmall,
-            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surface,
+                        tonalElevation = 4.dp,
+                    ) {
+                        IconButton(
+                            onClick = { navController.popBackStack() },
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Go Back",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
+
+                Text(
+                    text = "General",
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
+
             Card (
                 modifier = Modifier.padding(top = 8.dp)
             ) {
@@ -67,7 +103,7 @@ fun SettingsScreen(
                 ){
                     Text("Time to keep data: ")
                     Spacer(Modifier.width(16.dp))
-                    dropDown()
+                    customDropDown()
                 }
             }
 
@@ -99,7 +135,7 @@ fun SettingsScreen(
 }
 
 @Composable
-fun dropDown(){
+fun customDropDown(){
     val isDropDownExpanded = remember {
         mutableStateOf(false)
     }

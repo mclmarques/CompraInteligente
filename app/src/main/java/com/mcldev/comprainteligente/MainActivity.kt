@@ -70,7 +70,7 @@ class MainActivity : ComponentActivity() {
                         val navController = rememberNavController()
                         NavHost(
                             navController = navController,
-                            startDestination = Screen.Settings.route
+                            startDestination = Screen.Home.route
                         ) {
                             composable(Screen.Home.route) {
                                 HomeScreen(
@@ -86,7 +86,7 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
                             //composable(Screen.Receipts.route) { ReceiptsScreen(modifier = Modifier, viewModel = homeScreenViewModel, navController = navController) }
-                            composable(Screen.Settings.route) { SettingsScreen() }
+                            composable(Screen.Settings.route) { SettingsScreen(navController) }
                         }
                     }
                 }
