@@ -13,15 +13,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -35,20 +29,22 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
 import com.mcldev.comprainteligente.R
 
 @Composable
 fun SettingsScreen(
     //modifier: Modifier,
-    navController: NavHostController
+    navController: NavHostController,
+    viewModel: SettingsScreenVM
 ) {
+    val selectedItem by viewModel.dataRetentionPeriod.collectAsState()
+    val deleteAllData by viewModel.deleteAllData.collectAsState()
     Scaffold { padding ->
         Column (
             modifier = Modifier
@@ -103,7 +99,7 @@ fun SettingsScreen(
                 ){
                     Text("Time to keep data: ")
                     Spacer(Modifier.width(16.dp))
-                    customDropDown()
+                    CustomDropDown(selectedItem)
                 }
             }
 
@@ -119,12 +115,11 @@ fun SettingsScreen(
                 ){
                     Text("Delete image and extracted products ")
                     Spacer(Modifier.width(16.dp))
-                    var checked by remember { mutableStateOf(true) }
 
                     Switch(
-                        checked = checked,
+                        checked = deleteAllData,
                         onCheckedChange = {
-                            checked = it
+                            viewModel.updateDeleteAllData(it)
                         }
                     )
                 }
@@ -134,17 +129,20 @@ fun SettingsScreen(
     }
 }
 
+
 @Composable
-fun customDropDown(){
+fun CustomDropDown(
+    defaultSelection: Int,
+){
     val isDropDownExpanded = remember {
         mutableStateOf(false)
     }
 
     val itemPosition = remember {
-        mutableStateOf(0)
+        mutableStateOf(defaultSelection)
     }
 
-    val timeToDelte = listOf("1 month", "3 months", "9 months", "1 year", "Never")
+    val timeToDelte = listOf("1 month", "3 months", "1 year", "2 year", "Never")
     Box() {
         Row(
             horizontalArrangement = Arrangement.Center,
