@@ -39,7 +39,6 @@ import com.mcldev.comprainteligente.R
 
 @Composable
 fun SettingsScreen(
-    //modifier: Modifier,
     navController: NavHostController,
     viewModel: SettingsScreenVM
 ) {
@@ -99,7 +98,10 @@ fun SettingsScreen(
                 ){
                     Text("Time to keep data: ")
                     Spacer(Modifier.width(16.dp))
-                    CustomDropDown(selectedItem)
+                    CustomDropDown(
+                        selectedItem,
+                        { viewModel.updateDataRetentionPeriod(selectedItem) }
+                    )
                 }
             }
 
@@ -133,6 +135,8 @@ fun SettingsScreen(
 @Composable
 fun CustomDropDown(
     defaultSelection: Int,
+    updateDataRetentionPeriod: () -> Unit,
+
 ){
     val isDropDownExpanded = remember {
         mutableStateOf(false)
@@ -169,6 +173,7 @@ fun CustomDropDown(
                     onClick = {
                         isDropDownExpanded.value = false
                         itemPosition.value = index
+                        updateDataRetentionPeriod()
                     })
             }
         }

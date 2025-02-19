@@ -29,5 +29,5 @@ val appModule = module {
     // Provide ViewModels
     viewModel { HomeScreenVM(get(), get()) }
     viewModel { ScanScreenVM(get(), get(), get()) }
-    viewModel { SettingsScreenVM() }
+    viewModel { SettingsScreenVM(androidContext()) }
 }

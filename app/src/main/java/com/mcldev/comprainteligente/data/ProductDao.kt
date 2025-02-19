@@ -13,6 +13,8 @@ interface ProductDao {
 
     @Query("DELETE FROM product WHERE date < :expirationTime")
     suspend fun timeBasedDelete(expirationTime: Long)
+    @Query("SELECT * FROM PRODUCT")
+    suspend fun getAllProducts(): List<Product>
 
 
 }

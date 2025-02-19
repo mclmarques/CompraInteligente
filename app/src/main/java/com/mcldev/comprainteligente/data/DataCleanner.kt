@@ -19,7 +19,10 @@ class DataCleanupWorker(
 
         val deleteAllData = getDeleteAllDataPreference()
         if (deleteAllData) {
-            repository.timeBasedDelete(cutoffDate) // Remove produtos antigos
+            val listProducts = repository.getAllProducts()
+            for(product in listProducts) {
+                repository.timeBasedDelete(cutoffDate)
+            }
         } else {
             //TODO: repository.deleteOldImages(cutoffDate) // Apenas remove imagens antigas
         }
@@ -32,12 +35,12 @@ class DataCleanupWorker(
         val periodIndex = sharedPreferences.getInt("retention_period", 1) // Padrão: 3 meses
 
         return when (periodIndex) {
-            0 -> TimeUnit.DAYS.toMillis(30)    // 1 mês
-            1 -> TimeUnit.DAYS.toMillis(90)    // 3 meses
-            2 -> TimeUnit.DAYS.toMillis(365)   // 1 ano
-            3 -> TimeUnit.DAYS.toMillis(730)   // 2 anos
-            4 -> Long.MAX_VALUE                // Nunca excluir
-            else -> TimeUnit.DAYS.toMillis(90) // Valor padrão de segurança
+            0 -> TimeUnit.DAYS.toMillis(30)    // 1 month
+            1 -> TimeUnit.DAYS.toMillis(90)    // 3 month
+            2 -> TimeUnit.DAYS.toMillis(365)   // 1 year
+            3 -> TimeUnit.DAYS.toMillis(730)   // 2 years
+            4 -> Long.MAX_VALUE                // Never exclude
+            else -> TimeUnit.DAYS.toMillis(90) // Default safety value
         }
     }
 
