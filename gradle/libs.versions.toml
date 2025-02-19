@@ -16,6 +16,7 @@ composeNavigation = "2.8.5"
 serialization = "1.6.3"
 tesseract4androidOpenmp = "4.8.0"
 koin = "4.0.2"
+workRuntimeKtx = "2.10.0"
 
 [libraries]
 androidx-activity-ktx = { module = "androidx.activity:activity-ktx", version.ref = "activityCompose" }
@@ -26,6 +27,7 @@ androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "roomRunt
 androidx-room-paging = { module = "androidx.room:room-paging", version.ref = "roomRuntime" }
 androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "roomRuntime" }
 androidx-room-testing = { module = "androidx.room:room-testing", version.ref = "roomRuntime" }
+androidx-work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "workRuntimeKtx" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }

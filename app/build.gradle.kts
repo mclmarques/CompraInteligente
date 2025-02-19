@@ -76,8 +76,9 @@ dependencies {
     implementation(libs.navigation.compose)
     implementation(libs.kotlinx.serialization.json)
 
-    //ML kit for text recognition
+    //Tesseeract
     implementation(libs.tesseract4android.openmp)
+
     //Scanner utility ML
     implementation(libs.play.services.mlkit.document.scanner)
 
@@ -86,4 +87,6 @@ dependencies {
     implementation(libs.koin.android)
     implementation(libs.koin.test)
 
+    //Work Manager
+    implementation(libs.androidx.work.runtime.ktx)
 }
