@@ -1,9 +1,10 @@
-package com.mcldev.comprainteligente.data
+package com.mcldev.comprainteligente.data.dao
 
 import androidx.room.Dao
 import androidx.room.Query
 import androidx.room.Delete
 import androidx.room.Upsert
+import com.mcldev.comprainteligente.data.entities.Supermarket
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -26,4 +27,6 @@ interface SupermarketDao {
     @Query("SELECT COUNT(*) FROM product WHERE supermarketId = :supermarketId")
     suspend fun getProductCount(supermarketId: Int): Int
 
+    @Query("DELETE FROM supermarket WHERE id IN (SELECT id FROM supermarket WHERE id NOT IN (SELECT DISTINCT supermarketId FROM product))")
+    suspend fun deleteEmptySupermarkets()
 }

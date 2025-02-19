@@ -4,9 +4,9 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.mcldev.comprainteligente.data.ProductDao
-import com.mcldev.comprainteligente.data.Supermarket
-import com.mcldev.comprainteligente.data.SupermarketDao
+import com.mcldev.comprainteligente.data.dao.ProductDao
+import com.mcldev.comprainteligente.data.entities.Supermarket
+import com.mcldev.comprainteligente.data.dao.SupermarketDao
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow

@@ -452,25 +452,8 @@ fun LoadingScreen() {
             .statusBarsPadding()
     ) {
         // Back button
-        Surface(
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 4.dp,
-            modifier = Modifier.padding(8.dp)
-        ) {
-            IconButton(
-                onClick = { /*navController.popBackStack()*/ },
-                modifier = Modifier.size(40.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Go Back",
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-        }
 
-        Column(
+            Column(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
@@ -488,7 +471,7 @@ fun LoadingScreen() {
             Text(stringResource(R.string.processing))
 
         }
-    }
+        }
 }
 
 

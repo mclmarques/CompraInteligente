@@ -1,4 +1,4 @@
-package com.mcldev.comprainteligente.data
+package com.mcldev.comprainteligente.data.database
 
 import android.location.Location
 import androidx.room.TypeConverter

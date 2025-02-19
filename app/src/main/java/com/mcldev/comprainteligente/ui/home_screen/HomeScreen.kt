@@ -24,7 +24,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
@@ -56,7 +55,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.mcldev.comprainteligente.R
-import com.mcldev.comprainteligente.data.Supermarket
+import com.mcldev.comprainteligente.data.entities.Supermarket
 import com.mcldev.comprainteligente.ui.util.Screen
 import java.text.NumberFormat
 import java.text.SimpleDateFormat

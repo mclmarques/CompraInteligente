@@ -1,6 +1,7 @@
 package com.mcldev.comprainteligente
 
 import android.app.ActivityManager
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -35,11 +36,15 @@ import com.mcldev.comprainteligente.ui.util.ErrorCodes
 import com.mcldev.comprainteligente.ui.util.Screen
 import org.koin.android.ext.android.inject
 import org.koin.androidx.viewmodel.ext.android.getViewModel
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import com.mcldev.comprainteligente.data.repository.DataCleanupWorker
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        testRunWorker(this)
         setContent {
             CompraInteligenteTheme {
                 Surface {
@@ -94,6 +99,11 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    fun testRunWorker(context: Context) {
+        val workRequest = OneTimeWorkRequestBuilder<DataCleanupWorker>().build()
+        WorkManager.getInstance(context).enqueue(workRequest)
     }
 
     @Composable

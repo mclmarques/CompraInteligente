@@ -1,7 +1,7 @@
 package com.mcldev.comprainteligente
 import androidx.room.Room
-import com.mcldev.comprainteligente.data.DataBase
-import com.mcldev.comprainteligente.data.createTessFolder
+import com.mcldev.comprainteligente.data.database.DataBase
+import com.mcldev.comprainteligente.data.util.createTessFolder
 import com.mcldev.comprainteligente.ui.home_screen.HomeScreenVM
 import com.mcldev.comprainteligente.ui.scan_screen.ScanScreenVM
 import com.mcldev.comprainteligente.ui.settings_screen.SettingsScreenVM
@@ -29,5 +29,5 @@ val appModule = module {
     // Provide ViewModels
     viewModel { HomeScreenVM(get(), get()) }
     viewModel { ScanScreenVM(get(), get(), get()) }
-    viewModel { SettingsScreenVM(androidContext()) }
+    viewModel { SettingsScreenVM(androidContext().applicationContext) }
 }

@@ -100,7 +100,7 @@ fun SettingsScreen(
                     Spacer(Modifier.width(16.dp))
                     CustomDropDown(
                         selectedItem,
-                        { viewModel.updateDataRetentionPeriod(selectedItem) }
+                        { newSelection -> viewModel.updateDataRetentionPeriod(newSelection) }
                     )
                 }
             }
@@ -135,8 +135,7 @@ fun SettingsScreen(
 @Composable
 fun CustomDropDown(
     defaultSelection: Int,
-    updateDataRetentionPeriod: () -> Unit,
-
+    updateDataRetentionPeriod: (Int) -> Unit
 ){
     val isDropDownExpanded = remember {
         mutableStateOf(false)
@@ -173,7 +172,7 @@ fun CustomDropDown(
                     onClick = {
                         isDropDownExpanded.value = false
                         itemPosition.value = index
-                        updateDataRetentionPeriod()
+                        updateDataRetentionPeriod(index)
                     })
             }
         }

@@ -1,8 +1,7 @@
-package com.mcldev.comprainteligente.data
+package com.mcldev.comprainteligente.data.entities
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
-import java.util.Date
 
 @Entity(
     tableName = "product",

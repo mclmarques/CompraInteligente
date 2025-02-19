@@ -1,4 +1,4 @@
-package com.mcldev.comprainteligente.data
+package com.mcldev.comprainteligente.data.entities
 
 import android.location.Location
 import androidx.room.Entity
