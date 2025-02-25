@@ -89,4 +89,9 @@ dependencies {
 
     //Work Manager
     implementation(libs.androidx.work.runtime.ktx)
+
+    //Suport for links inside the credits section
+    implementation(platform(libs.androidx.compose.bom.v20250101))
+    implementation(libs.androidx.compose.material3.material3)
+
 }

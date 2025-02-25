@@ -17,6 +17,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -34,7 +35,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withLink
 import com.mcldev.comprainteligente.R
 
 @Composable
@@ -126,6 +133,25 @@ fun SettingsScreen(
                     )
                 }
             }
+            Spacer(Modifier.height(32.dp))
+
+            Text(
+                text = "Credits",
+                style = MaterialTheme.typography.headlineSmall,
+            )
+            Text(
+                buildAnnotatedString {
+                    append("App icon made by FoodDelivery available at ")
+                    withLink(
+                        LinkAnnotation.Url(
+                            "https://www.flaticon.com/br/icone-gratis/carrinho-de-supermercado_2203239?term=compras&page=1&position=74&origin=search&related_id=2203239",
+                            TextLinkStyles(style = SpanStyle(color = Color.Blue))
+                        )
+                    ) {
+                        append("flaticon")
+                    }
+                }
+            )
 
         }
     }

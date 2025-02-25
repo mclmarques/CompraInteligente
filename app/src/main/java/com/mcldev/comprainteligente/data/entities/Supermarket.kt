@@ -12,3 +12,7 @@ data class Supermarket (
     val localization: Location? = null,
     val averagePrice: Float
 )
+/*
+TODO:
+-> Add localization functionality to the app and link geo tag with each supermarket
+ */

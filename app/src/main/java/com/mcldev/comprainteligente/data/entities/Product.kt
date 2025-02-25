@@ -23,3 +23,8 @@ data class Product (
     val supermarketId: Int,
     val date: Long
 )
+/*
+TODO:
+-> Add unit of the product for more accurate info.
+This is likely to come con V2 with the introduction of AI assistance
+ */

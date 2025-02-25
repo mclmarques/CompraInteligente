@@ -16,7 +16,7 @@ interface SupermarketDao {
     suspend fun deleteSupermarket(supermarket: Supermarket)
 
     @Query("SELECT * FROM supermarket")
-    fun getAllSupermarkets(): Flow<List<Supermarket>> //used this to get live updates on the homescreen
+    fun getAllSupermarkets(): Flow<List<Supermarket>>
 
     @Query("SELECT * FROM supermarket WHERE id = :supermarketId LIMIT 1")
     fun getSupermarketById(supermarketId: Int): Supermarket?

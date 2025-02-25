@@ -1,5 +1,6 @@
 [versions]
 agp = "8.7.3"
+composeBomVersion = "2025.01.01"
 fragmentCompose = "1.8.6"
 kotlin = "2.0.0"
 coreKtx = "1.15.0"
@@ -20,6 +21,8 @@ workRuntimeKtx = "2.10.0"
 
 [libraries]
 androidx-activity-ktx = { module = "androidx.activity:activity-ktx", version.ref = "activityCompose" }
+androidx-compose-bom-v20250101 = { module = "androidx.compose:compose-bom", version.ref = "composeBomVersion" }
+androidx-compose-material3-material3 = { module = "androidx.compose.material3:material3" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-fragment-compose = { module = "androidx.fragment:fragment-compose", version.ref = "fragmentCompose" }
 androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "roomRuntime" }

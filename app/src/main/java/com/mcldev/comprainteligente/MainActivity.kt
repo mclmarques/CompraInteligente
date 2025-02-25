@@ -44,7 +44,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        testRunWorker(this)
         setContent {
             CompraInteligenteTheme {
                 Surface {
@@ -55,7 +54,6 @@ class MainActivity : ComponentActivity() {
                     val totalMemory = memInfo.totalMem.toDouble() / (1024 * 1024 * 1024)
                     val path by inject<String>()
 
-                    //Checks requirements and them launches the app if they pass
                     if (totalMemory < 2) {
                         AlertDialog(
                             onConfirmation = {finish()},
@@ -63,7 +61,7 @@ class MainActivity : ComponentActivity() {
                             icon = R.drawable.warning_ic
                         )
                     }
-                    else  if(path == null) {
+                    else  if(path.isEmpty()) {
                         AlertDialog(
                             onConfirmation = {finish()},
                             errCode =  ErrorCodes.UNSUPPORTED_DEVICE_ERROR_2,
@@ -101,11 +99,16 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    fun testRunWorker(context: Context) {
-        val workRequest = OneTimeWorkRequestBuilder<DataCleanupWorker>().build()
-        WorkManager.getInstance(context).enqueue(workRequest)
-    }
-
+    /**
+     * Displays an error alert dialog with a warning icon, a title, and an optional message.
+     *
+     * This composable presents an error dialog based on the provided `ErrorCodes` enum.
+     * It includes a title, an optional error message, and a confirmation button labeled "Exit."
+     *
+     * @param onConfirmation Callback invoked when the user confirms the dialog.
+     * @param errCode The error code representing the message and title to be displayed. See util -> error_codes.md for more info
+     * @param icon The resource ID of the icon to be displayed in the dialog.
+     */
     @Composable
     fun AlertDialog(
         onConfirmation: () -> Unit,
