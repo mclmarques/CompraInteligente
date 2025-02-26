@@ -13,6 +13,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.text.NumberFormat
+import java.util.Locale
 
 /**
  * ViewModel for managing the home screen state and user interactions.
@@ -33,10 +35,9 @@ class HomeScreenVM(
     private val _searchText = MutableStateFlow("")
     val searchText = _searchText.asStateFlow()
 
-    private val _isSearching = MutableStateFlow(false)
-    val isSearching = _isSearching.asStateFlow()
+    private var isSearching = false
 
-    private val _searchResults = MutableStateFlow<List<searchResult>>(emptyList())
+    private val _searchResults = MutableStateFlow<List<SearchResult>>(emptyList())
     val searchResults = _searchResults.asStateFlow()
 
     //supermarkets
@@ -44,11 +45,15 @@ class HomeScreenVM(
     val supermarkets: StateFlow<List<Supermarket>> = _supermarkets
 
     //selection mode
-    var selectionMode = mutableStateOf(false)
-        private set
+    private val _selectionMode = MutableStateFlow<Boolean>(false)
+    val selectionMode: StateFlow<Boolean> = _selectionMode
 
     private val _selectedItems = mutableStateListOf<Supermarket>()
     val selectedItems: List<Supermarket> get() = _selectedItems
+
+    //Locale stuff (As the first version is launched on Brazil, the locale is optimized to that country Locale). On future releases with support to more countries this is likely to change
+    val brazilLocale = Locale("pt", "BR")
+    val currencyFormatter: NumberFormat = NumberFormat.getCurrencyInstance(brazilLocale)
 
     //collects flow from the db to react to changes (like scanning a receipt or removing a supermarket)
     init {
@@ -61,7 +66,7 @@ class HomeScreenVM(
 
     //selection mode stuff
     fun toggleSelectionMode() {
-        selectionMode.value = !selectionMode.value
+        _selectionMode.value = !selectionMode.value
         if (!selectionMode.value) clearSelection()
     }
 
@@ -112,11 +117,11 @@ class HomeScreenVM(
      * @param query The user input search query.
      */
     private fun performSearch(query: String) {
-        val results: MutableList<searchResult> = mutableListOf()
+        val results: MutableList<SearchResult> = mutableListOf()
         viewModelScope.launch(Dispatchers.IO) {
             delay(500)
             if (query.isNotEmpty()) {
-                _isSearching.value = true
+                isSearching = true
                 // Fetch results from database
                 val products = productDao.getProductsByName(query)
                 var supermarket: Supermarket?
@@ -124,14 +129,14 @@ class HomeScreenVM(
                 //map each product to it's corresponding supermarket
                 for (product in products) {
                     supermarket = supermarketDao.getSupermarketById(product.supermarketId)
-                    //Only show complete search items. Thogh as supermarket name is mandatory on the db, this is an edge case
+                    //Only show complete search items. Though as supermarket name is mandatory on the db, this is an edge case
                     if (supermarket != null) {
                         supermarketName = supermarket.name
-                        results.add(searchResult(product.name, product.price, supermarketName, date = product.date))
+                        results.add(SearchResult(product.name, product.price, supermarketName, date = product.date))
                     }
                 }
                 _searchResults.value = results
-                _isSearching.value = false
+                isSearching = false
             } else {
                 _searchResults.value = emptyList() // Clear results when query is empty
             }
@@ -144,7 +149,7 @@ class HomeScreenVM(
 Custom data type to handle search results more efficiently and make the code more readable.
 Otherwise for each search result, there would be necessary to make a db search to convert the supermarket id into it's name
  */
-data class searchResult(
+data class SearchResult(
     val productName: String,
     val price: Float,
     val supermarketName: String,

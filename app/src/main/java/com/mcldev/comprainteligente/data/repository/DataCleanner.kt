@@ -12,6 +12,13 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.io.File
 
+/**
+ * A [CoroutineWorker] responsible for cleaning up outdated data in the background.
+ * This worker deletes product, empty supermarkets and old receipt images based on user-defined retention settings.
+ *
+ * @property productDao Data Access Object for handling product-related database operations.
+ * @property supermarketDao Data Access Object for handling supermarket-related database operations.
+ */
 class DataCleanupWorker(
     context: Context,
     params: WorkerParameters,
@@ -27,6 +34,7 @@ class DataCleanupWorker(
 
         val cutoffDate = calculateCutoffDate(retentionPeriod)
 
+        //if deleteAllData is true, images and contents of the db are deleted, else only db contents are removed
         val deleteAllData = getDeleteAllDataPreference()
         if (deleteAllData) {
             val listProducts = productDao.getAllProducts()
@@ -72,6 +80,11 @@ class DataCleanupWorker(
         return Result.success()
     }
 
+    /**
+     * Retrieves the data retention period from shared preferences.
+     *
+     * @return The retention period in milliseconds. Defaults to 3 months if no value is set.
+     */
     private fun getRetentionPeriodFromPreferences(): Long {
         val sharedPreferences = applicationContext.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
         val periodIndex = sharedPreferences.getInt("retention_period", 1) // if fails, use default value of 3 months
@@ -90,6 +103,12 @@ class DataCleanupWorker(
         return now - retentionPeriod
     }
 
+    /**
+     * Retrieves the user preference for whether all data (DB data and images)
+     * should be deleted.
+     *
+     * @return `true` if all data should be deleted, `false` if only images should be removed.
+     */
     private fun getDeleteAllDataPreference(): Boolean {
         val sharedPreferences = applicationContext.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
         return sharedPreferences.getBoolean("delete_all_data", true) // Default: clear all data

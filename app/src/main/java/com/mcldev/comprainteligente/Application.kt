@@ -1,10 +1,13 @@
 package com.mcldev.comprainteligente
 
 import android.app.Application
+import androidx.work.Constraints
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import com.mcldev.comprainteligente.data.repository.DataCleanupWorker
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
-import androidx.work.*
-import com.mcldev.comprainteligente.data.repository.DataCleanupWorker
 import java.util.concurrent.TimeUnit
 
 class Application : Application() {

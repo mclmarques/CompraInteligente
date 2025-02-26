@@ -1,7 +1,6 @@
 package com.mcldev.comprainteligente
 
 import android.app.ActivityManager
-import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -36,9 +35,6 @@ import com.mcldev.comprainteligente.ui.util.ErrorCodes
 import com.mcldev.comprainteligente.ui.util.Screen
 import org.koin.android.ext.android.inject
 import org.koin.androidx.viewmodel.ext.android.getViewModel
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.WorkManager
-import com.mcldev.comprainteligente.data.repository.DataCleanupWorker
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -47,7 +43,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             CompraInteligenteTheme {
                 Surface {
-                    // Check RAM amount and initializes Tesserat folder
+                    // Check RAM amount and initializes Tesseract folder
                     val actManager = getSystemService(ACTIVITY_SERVICE) as ActivityManager
                     val memInfo = ActivityManager.MemoryInfo()
                     actManager.getMemoryInfo(memInfo)

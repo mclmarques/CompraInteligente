@@ -3,9 +3,7 @@ package com.mcldev.comprainteligente.data.database
 import android.location.Location
 import androidx.room.TypeConverter
 
-/**
- * Covnerts the data coming from and to the database
- */
+
 class Converter {
     @TypeConverter
     fun fromLocation(location: Location?): String? {

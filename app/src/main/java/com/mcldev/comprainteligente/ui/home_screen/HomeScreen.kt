@@ -63,9 +63,16 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Home screen made of a scaffold containing a search bar at the top, lazy column filling the screen showing the average prices
- * of the supermarkets and a dynamic FAB that is used to add products by scanning a receipt or delete the selected supermarkets
+ * Displays the home screen, allowing users to search products and see supermarket price averages.
+ *
+ * @param viewModel The ViewModel handling UI logic and data retrieval.
+ * @param navController The navigation controller for screen transitions.
+ *
+ * ## UI States:
+ * - **Normal Mode**: Users can browse supermarkets and search for products.
+ * - **Selection Mode**: Allows users to select multiple supermarkets for deletion.
  */
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun HomeScreen(
@@ -87,16 +94,15 @@ fun HomeScreen(
     val supermarkets by viewModel.supermarkets.collectAsState()
 
     //selection mode stuff + animation for the dynamic FAB
-    val selectionMode = viewModel.selectionMode.value
+    val selectionMode by viewModel.selectionMode.collectAsState()
 
     // Rotation Animation
     val rotationAngle by animateFloatAsState(
         targetValue = if (selectionMode) 0f else 180f, // Rotate to 0 for Delete, 180 for Add
         label = "Rotation Animation"
     )
-    //Locale stuff (As the first version is launched on Brazil if is optimized to that country Locale). On future releases with support to more countries this is likely to change
-    val brazilLocale = Locale("pt", "BR")
-    val currencyFormatter = NumberFormat.getCurrencyInstance(brazilLocale)
+
+    val currencyFormatter = viewModel.currencyFormatter
     /*
     This is used to "restore the default back gesture" which normally exists the app, but as I modify it
     so when selection mode is enabled it would cancel the selection and go back to normal mode, this is needed
@@ -210,9 +216,8 @@ fun HomeScreen(
                 if (searchResults.isNotEmpty()) {
                     LazyColumn(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                            .fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(searchResults) { product ->
                             Card(
@@ -224,13 +229,13 @@ fun HomeScreen(
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(16.dp),
+                                        .padding(8.dp),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Column(verticalArrangement = Arrangement.Center) {
                                         Text(text = product.productName)
-                                        Row (verticalAlignment = Alignment.CenterVertically){
+                                        Column (verticalArrangement = Arrangement.Center){
                                             Text(text = product.supermarketName)
                                             Spacer(Modifier.width(16.dp))
                                             Text(
@@ -260,10 +265,10 @@ fun HomeScreen(
             Show all the supermarkets on the db and their averages.
             A color scheme was added, were the cheapest is green and the most expensive red. In between values have no color difference
              */
+
             LazyColumn(modifier = modifier.padding(innerPadding)) {
                 val minPrice = supermarkets.minOfOrNull { it.averagePrice } ?: 0.0
                 val maxPrice = supermarkets.maxOfOrNull { it.averagePrice } ?: 0.0
-
 
                 items(supermarkets) { supermarket: Supermarket ->
                     val priceColor = when (supermarket.averagePrice) {
@@ -287,7 +292,7 @@ fun HomeScreen(
                                         viewModel.toggleSelectionMode()
                                         viewModel.toggleItemSelection(supermarket)
                                     } else {
-                                        viewModel.selectionMode.value = false
+                                        viewModel.toggleSelectionMode()
                                         viewModel.clearSelection()
                                     }
 

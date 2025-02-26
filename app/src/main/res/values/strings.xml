@@ -49,6 +49,19 @@
 
     <string name="processing">Processing the image!</string>
     <string name="search">Search…</string>
+    <string name="month1">1 month</string>
+    <string name="month3">3 month</string>
+    <string name="year1">1 year</string>
+    <string name="year2">2 years</string>
+    <string name="never">2 never</string>
+
+    <!--Settings screen-->
+    <string name="general">General</string>
+    <string name="time_keep_data">Time to keep data: </string>
+    <string name="delete_all_data">Delete image and extracted products </string>
+    <string name="credits">Credits</string>
+    <string name="credits_icon">App icon made by FoodDelivery available at </string>
+
 
 
     <!--content descriptions-->

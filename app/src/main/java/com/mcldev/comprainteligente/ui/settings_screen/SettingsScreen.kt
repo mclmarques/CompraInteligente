@@ -34,9 +34,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLinkStyles
@@ -87,7 +87,7 @@ fun SettingsScreen(
                 }
 
                 Text(
-                    text = "General",
+                    text = stringResource(R.string.general),
                     style = MaterialTheme.typography.headlineSmall,
                     modifier = Modifier.align(Alignment.Center)
                 )
@@ -103,7 +103,7 @@ fun SettingsScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ){
-                    Text("Time to keep data: ")
+                    Text(stringResource(R.string.time_keep_data))
                     Spacer(Modifier.width(16.dp))
                     CustomDropDown(
                         selectedItem,
@@ -115,6 +115,9 @@ fun SettingsScreen(
             Card (
                 modifier = Modifier.padding(top = 8.dp)
             ) {
+                /*
+                TODO: Improve the UX of this config as it can be ambigous. Disabling the swtich only deletes db contents but keep images
+                 */
                 Row (
                     modifier = Modifier
                         .fillMaxWidth()
@@ -122,7 +125,7 @@ fun SettingsScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ){
-                    Text("Delete image and extracted products ")
+                    Text(stringResource(R.string.delete_all_data))
                     Spacer(Modifier.width(16.dp))
 
                     Switch(
@@ -136,19 +139,19 @@ fun SettingsScreen(
             Spacer(Modifier.height(32.dp))
 
             Text(
-                text = "Credits",
+                text = stringResource(R.string.credits),
                 style = MaterialTheme.typography.headlineSmall,
             )
             Text(
                 buildAnnotatedString {
-                    append("App icon made by FoodDelivery available at ")
+                    append(stringResource(R.string.credits_icon))
                     withLink(
                         LinkAnnotation.Url(
                             "https://www.flaticon.com/br/icone-gratis/carrinho-de-supermercado_2203239?term=compras&page=1&position=74&origin=search&related_id=2203239",
                             TextLinkStyles(style = SpanStyle(color = Color.Blue))
                         )
                     ) {
-                        append("flaticon")
+                        append(" flaticon")
                     }
                 }
             )
@@ -171,7 +174,13 @@ fun CustomDropDown(
         mutableStateOf(defaultSelection)
     }
 
-    val timeToDelte = listOf("1 month", "3 months", "1 year", "2 year", "Never")
+    val timeToDelte = listOf(
+        stringResource(R.string.month1),
+        stringResource(R.string.month3),
+        stringResource(R.string.year1),
+        stringResource(R.string.year2),
+        stringResource(R.string.never)
+        )
     Box() {
         Row(
             horizontalArrangement = Arrangement.Center,
