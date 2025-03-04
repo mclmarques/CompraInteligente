@@ -10,11 +10,11 @@ import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
 import java.util.concurrent.TimeUnit
 
-class Application : Application() {
+class CompraInteligenteApp : Application() {
     override fun onCreate() {
         super.onCreate()
         startKoin {
-            androidContext(this@Application)
+            androidContext(this@CompraInteligenteApp)
             modules(appModule)
         }
         scheduleDataCleanup()
@@ -27,7 +27,7 @@ class Application : Application() {
             .build()
 
         val cleanupWorkRequest = PeriodicWorkRequestBuilder<DataCleanupWorker>(
-            7, TimeUnit.DAYS
+            7, TimeUnit.DAYS,
         ).setConstraints(constraints)
             .build()
 
@@ -37,4 +37,6 @@ class Application : Application() {
             cleanupWorkRequest
         )
     }
+
+
 }

@@ -22,8 +22,9 @@ android {
     }
 
     buildTypes {
-        release {
-            isMinifyEnabled = false
+        debug {
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -94,4 +95,11 @@ dependencies {
     implementation(platform(libs.androidx.compose.bom.v20250101))
     implementation(libs.androidx.compose.material3.material3)
 
+    //Memory leak check
+    //debugImplementation ("com.squareup.leakcanary:leakcanary-android:2.14")
+    /*
+    Tested on 3/03/25 with release flag and using R8 and with debug build without R8. Both tests cicle thorugh
+    all the implemented screens at the time and waited for aobut a minute on each.
+    No leaks found.
+     */
 }

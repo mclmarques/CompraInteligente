@@ -254,19 +254,19 @@ class ScanScreenVM(
     }
 
     private suspend fun postProcessOCRText(ocrText: String) {
-        Log.i("post-process", "Post processing started!")
+        Log.i("debug", ocrText)
         viewModelScope.launch(Dispatchers.Default) {
             val lines = ocrText.lines()
             _supermarket.value = lines[1]
-            val productRegex =
-                Regex("""\d{6,14}\s+((\w+\s?){1,5})""") // Product code + up to 5 words
+            val productRegex = Regex("""\d{6,14}\s+((\w+\s?){1,5})""") // Product code + up to 5 words
             val priceRegex = Regex("""(\d{1,3}[.,]\d{2})""")
 
             //Work internally on a copy
             val updatedProducts = _products.value.toMutableList()
             val updatedPrices = _prices.value.toMutableList()
 
-            for (i in lines.indices) {
+            //line 9 seems to be a good start for the majority of bigger supermarkets.
+            for (i in 9 until lines.size) {
                 val productMatch = productRegex.find(lines[i])
                 if (productMatch != null) {
                     val productDescription = productMatch.groupValues[1].trim()

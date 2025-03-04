@@ -68,4 +68,7 @@
     <string name="delete_supermarket_cd">Delete selected supermarkets</string>
     <string name="scan_receipt_cd">Add products by scanning a receipt</string>
     <string name="cancel_cd">C file ancel</string>
+
+    <!--Memory leak fix for LeakCanary is currently disabled: test class org.junit.Test was found in classpath.-->
+    <string name="leak_canary_test_class_name">assertk.Assert</string>
 </resources>

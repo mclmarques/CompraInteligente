@@ -79,6 +79,7 @@ import com.mcldev.comprainteligente.ui.util.ErrorCodes
  * All the process is done using Strings and Floats, and once the user confirms the selection of products,
  * a method of the viewmodel converts the strings and prices to actual Product objects and saves them
  */
+//TODO: Maybe add a FAB to add products that weren't picked up by the scanner
 @Composable
 fun ScanScreen(
     viewModel: ScanScreenVM = viewModel(),
@@ -137,7 +138,8 @@ fun ScanScreen(
             },
             updateSupermarket = { newSupermarket ->
                 viewModel.updateSupermarket(newSupermarket)
-            }
+            },
+            cancel = {navController.popBackStack()}
         )
 
         is ProcessingState.Error -> {
@@ -175,7 +177,8 @@ fun ListOfItems(
     updateSupermarket: (newName: String) -> Unit,
     updateProduct: (product: String?, price: Float?, position: Int) -> Unit,
     saveProducts: () -> Unit,
-    deleteProduct: (position: Int) -> Unit
+    deleteProduct: (position: Int) -> Unit,
+    cancel: () -> Unit
 ) {
     var isSupermarketValid by remember { mutableStateOf(supermarket.isNotEmpty()) }
 
@@ -203,7 +206,7 @@ fun ListOfItems(
 
                 Spacer(Modifier.width(8.dp))
                 Button(
-                    onClick = saveProducts,
+                    onClick = cancel,
                     shape = CircleShape,
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Red.copy(alpha = 0.70f))
                 ) {
