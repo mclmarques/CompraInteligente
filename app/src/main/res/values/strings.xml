@@ -62,6 +62,8 @@
     <string name="credits">Credits</string>
     <string name="credits_icon">App icon made by FoodDelivery available at </string>
 
+    <!--Home screen-->
+    <string name="no_supermarkets">No supermarkets are saved yet. Let\'s starting scanning so you save uo money!</string>
 
 
     <!--content descriptions-->

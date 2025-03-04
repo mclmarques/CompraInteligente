@@ -5,7 +5,6 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Environment
-import android.util.Log
 import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -81,7 +80,6 @@ class ScanScreenVM(
      *
      */
     fun processImage(context: Context, uri: Uri) {
-        var rawText: String?
         _processingState.value = ProcessingState.Loading
         if (uri.path != null) {
             imageUri = uri
@@ -254,7 +252,7 @@ class ScanScreenVM(
     }
 
     private suspend fun postProcessOCRText(ocrText: String) {
-        Log.i("debug", ocrText)
+        //Log.i("debug", ocrText)
         viewModelScope.launch(Dispatchers.Default) {
             val lines = ocrText.lines()
             _supermarket.value = lines[1]

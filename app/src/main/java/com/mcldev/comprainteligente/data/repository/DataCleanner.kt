@@ -2,7 +2,6 @@ package com.mcldev.comprainteligente.data.repository
 
 import android.content.Context
 import android.os.Environment
-import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.mcldev.comprainteligente.data.dao.ProductDao
@@ -29,7 +28,7 @@ class DataCleanupWorker(
 
     override suspend fun doWork(): Result {
         val retentionPeriod = getRetentionPeriodFromPreferences()
-        Log.d("DataCleanupWorker", "Retention period: $retentionPeriod")
+        //Log.d("DataCleanupWorker", "Retention period: $retentionPeriod")
         if (retentionPeriod == Long.MAX_VALUE) return Result.success() // Never delete any data
 
         val cutoffDate = calculateCutoffDate(retentionPeriod)
@@ -45,7 +44,7 @@ class DataCleanupWorker(
             //Delete images
             val storageDir: File? = applicationContext.getExternalFilesDir(Environment.DIRECTORY_PICTURES)
             if (storageDir == null || !storageDir.exists()) {
-                Log.d("DataCleanupWorker", "Image directory not found, skipping deletion.")
+                //Log.d("DataCleanupWorker", "Image directory not found, skipping deletion.")
                 return Result.failure()
             }
 
@@ -55,14 +54,14 @@ class DataCleanupWorker(
 
             for (file in imageFiles) {
                 if (file.lastModified() < cutoffDate) {
-                    val deleted = file.delete()
-                    Log.d("DataCleanupWorker", "Deleting image: ${file.name}, Success: $deleted")
+                    file.delete()
+                    //Log.d("DataCleanupWorker", "Deleting image: ${file.name}, Success: $deleted")
                 }
             }
         } else {
             val storageDir: File? = applicationContext.getExternalFilesDir(Environment.DIRECTORY_PICTURES)
             if (storageDir == null || !storageDir.exists()) {
-                Log.d("DataCleanupWorker", "Image directory not found, skipping deletion.")
+                //Log.d("DataCleanupWorker", "Image directory not found, skipping deletion.")
                 return Result.failure()
             }
 
@@ -72,8 +71,8 @@ class DataCleanupWorker(
 
             for (file in imageFiles) {
                 if (file.lastModified() < cutoffDate) {
-                    val deleted = file.delete()
-                    Log.d("DataCleanupWorker", "Deleting image: ${file.name}, Success: $deleted")
+                    file.delete()
+                    //Log.d("DataCleanupWorker", "Deleting image: ${file.name}, Success: $deleted")
                 }
             }
         }

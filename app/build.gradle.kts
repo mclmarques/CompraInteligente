@@ -22,9 +22,20 @@ android {
     }
 
     buildTypes {
-        debug {
+        release {
+            isDebuggable = false
             isMinifyEnabled = true
             isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
+
+        debug {
+            isDebuggable = true
+            isMinifyEnabled = false
+            isShrinkResources = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -43,6 +54,8 @@ android {
         mlModelBinding = true
     }
 }
+
+
 
 dependencies {
     implementation(libs.androidx.core.ktx)
@@ -70,7 +83,6 @@ dependencies {
     //Room
     implementation(libs.androidx.room.runtime)
     ksp(libs.androidx.room.compiler)
-    val room_version = "2.6.1"
     implementation(libs.androidx.room.ktx)
 
     //Navigation
@@ -102,4 +114,7 @@ dependencies {
     all the implemented screens at the time and waited for aobut a minute on each.
     No leaks found.
      */
+}
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas") // Add schema export location for Room
 }

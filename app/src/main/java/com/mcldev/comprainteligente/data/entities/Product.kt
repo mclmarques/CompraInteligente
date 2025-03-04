@@ -1,6 +1,7 @@
 package com.mcldev.comprainteligente.data.entities
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 @Entity(
@@ -12,7 +13,8 @@ import androidx.room.PrimaryKey
             childColumns = ["supermarketId"],
             onDelete = ForeignKey.CASCADE
         )
-    ]
+    ],
+    indices = [Index("supermarketId")]  //Adding index to imrpove performance and fix room warning
 )
 data class Product (
     @PrimaryKey(autoGenerate = true)

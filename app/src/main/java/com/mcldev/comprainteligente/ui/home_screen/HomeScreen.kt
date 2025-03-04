@@ -57,7 +57,7 @@ import androidx.navigation.NavHostController
 import com.mcldev.comprainteligente.R
 import com.mcldev.comprainteligente.data.entities.Supermarket
 import com.mcldev.comprainteligente.ui.util.Screen
-import java.text.NumberFormat
+
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -265,60 +265,67 @@ fun HomeScreen(
             Show all the supermarkets on the db and their averages.
             A color scheme was added, were the cheapest is green and the most expensive red. In between values have no color difference
              */
+            if(supermarkets.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.no_supermarkets),
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+            else {
+                LazyColumn(modifier = modifier.padding(innerPadding)) {
+                    val minPrice = supermarkets.minOfOrNull { it.averagePrice } ?: 0.0
+                    val maxPrice = supermarkets.maxOfOrNull { it.averagePrice } ?: 0.0
 
-            LazyColumn(modifier = modifier.padding(innerPadding)) {
-                val minPrice = supermarkets.minOfOrNull { it.averagePrice } ?: 0.0
-                val maxPrice = supermarkets.maxOfOrNull { it.averagePrice } ?: 0.0
+                    items(supermarkets) { supermarket: Supermarket ->
+                        val priceColor = when (supermarket.averagePrice) {
+                            minPrice -> Color(0xFF008000)
+                            maxPrice -> Color.Red
+                            else -> MaterialTheme.colorScheme.onSurface
 
-                items(supermarkets) { supermarket: Supermarket ->
-                    val priceColor = when (supermarket.averagePrice) {
-                        minPrice -> Color(0xFF008000)
-                        maxPrice -> Color.Red
-                        else -> MaterialTheme.colorScheme.onSurface
-
-                    }
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(8.dp)
-                            .combinedClickable(
-                                onClick = {
-                                    if (selectionMode) {
-                                        viewModel.toggleItemSelection(supermarket)
-                                    }
-                                },
-                                onLongClick = {
-                                    if (!selectionMode) {
-                                        viewModel.toggleSelectionMode()
-                                        viewModel.toggleItemSelection(supermarket)
-                                    } else {
-                                        viewModel.toggleSelectionMode()
-                                        viewModel.clearSelection()
-                                    }
-
-
-                                }
-                            ),
-                        colors = CardDefaults.cardColors(
-                            if (viewModel.selectedItems.contains(supermarket)) Color.LightGray else MaterialTheme.colorScheme.surfaceVariant
-                        ),
-                        elevation = CardDefaults.cardElevation(4.dp)
-                    ) {
-                        Row(
+                        }
+                        Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(16.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                                .padding(8.dp)
+                                .combinedClickable(
+                                    onClick = {
+                                        if (selectionMode) {
+                                            viewModel.toggleItemSelection(supermarket)
+                                        }
+                                    },
+                                    onLongClick = {
+                                        if (!selectionMode) {
+                                            viewModel.toggleSelectionMode()
+                                            viewModel.toggleItemSelection(supermarket)
+                                        } else {
+                                            viewModel.toggleSelectionMode()
+                                            viewModel.clearSelection()
+                                        }
+
+
+                                    }
+                                ),
+                            colors = CardDefaults.cardColors(
+                                if (viewModel.selectedItems.contains(supermarket)) Color.LightGray else MaterialTheme.colorScheme.surfaceVariant
+                            ),
+                            elevation = CardDefaults.cardElevation(4.dp)
                         ) {
-                            Text(
-                                text = supermarket.name,
-                                style = MaterialTheme.typography.bodyLarge
-                            )
-                            Text(
-                                text = currencyFormatter.format(supermarket.averagePrice),
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = priceColor
-                            )
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = supermarket.name,
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                                Text(
+                                    text = currencyFormatter.format(supermarket.averagePrice),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = priceColor
+                                )
+                            }
                         }
                     }
                 }

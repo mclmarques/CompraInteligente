@@ -1,7 +1,6 @@
 package com.mcldev.comprainteligente.data.util
 
 import android.content.Context
-import android.util.Log
 import java.io.File
 import java.io.FileOutputStream
 
@@ -14,7 +13,7 @@ fun createTessFolder(context: Context): String? {
     val path = context.getExternalFilesDir(null)?.absolutePath + "/tesseract"
     val tessDataDirectory = File("$path/tessdata")
     if (!tessDataDirectory.exists() && !tessDataDirectory.mkdirs()) {
-        Log.e("Tesseract", "Failed to create Tesseract directory")
+        //Log.e("Tesseract", "Failed to create Tesseract directory")
         return null
     }
     val tessDataFile = File(tessDataDirectory, "por.traineddata")
@@ -30,11 +29,11 @@ fun createTessFolder(context: Context): String? {
             }
             inputStream.close()
             outputStream.close()
-            Log.i("Tesseract", "por.traineddata copied to device")
+           //Log.i("Tesseract", "por.traineddata copied to device")
         } catch (e: Exception) {
-            Log.e("Tesseract", "Error copying por.traineddata: ", e)
+            //Log.e("Tesseract", "Error copying por.traineddata: ", e)
             return null
         }
     }
-    return path;
+    return path
 }

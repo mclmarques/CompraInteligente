@@ -1,7 +1,6 @@
 package com.mcldev.comprainteligente.ui.home_screen
 
 import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mcldev.comprainteligente.data.dao.ProductDao
@@ -13,6 +12,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -57,7 +57,7 @@ class HomeScreenVM(
 
     //collects flow from the db to react to changes (like scanning a receipt or removing a supermarket)
     init {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch(Dispatchers.Main) {
             supermarketDao.getAllSupermarkets().collect { supermarketsList ->
                 _supermarkets.value = supermarketsList
             }
@@ -92,11 +92,16 @@ class HomeScreenVM(
      */
     fun deleteSelectedItems() {
         viewModelScope.launch(Dispatchers.IO) {
-            _selectedItems.forEach { supermarketDao.deleteSupermarket(it) }
-            clearSelection()
-            toggleSelectionMode()
+            val itemsToDelete = _selectedItems.toList() // Copy to avoid concurrent modification
+            itemsToDelete.forEach { supermarketDao.deleteSupermarket(it) }
+
+            withContext(Dispatchers.Main) {
+                clearSelection()
+                toggleSelectionMode()
+            }
         }
     }
+
 
     //Search
     fun onSearchTextChange(text: String) {
