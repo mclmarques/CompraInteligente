@@ -1,12 +1,20 @@
 # Compra Inteligente
+<div style="display: flex; justify-content: center; gap: 10px;">
+  <img src="images/home-light.png" width="200">
+  <img src="images/search-light.png" width="200">
+  <img src="images/add-light.png" width="200">
+</div>
+
+<div style="display: flex; justify-content: center; gap: 10px; margin-top: 10px;">
+  <img src="images/home-dark.png" width="200">
+  <img src="images/search-dark.png" width="200">
+  <img src="images/add-dark.png" width="200">
+</div>
+
 
 ## Introduction
 
 Compra Inteligente is an Android native application designed to help users manage their grocery expenses by scanning supermarket receipts and storing product details with prices. As more receipts are scanned, our growing database allows you to compare prices across various supermarkets, helping you find the best deals effortlessly.
-
-![App Screenshot 1](images/home-light.png)
-![App Screenshot 2](images/Screenshot_20250427-143556_Compra inteligente.png)
-![App Screenshot 2](images/Screenshot_20250427-143819_Compra inteligente.png)
 
 ## Key Features
 
