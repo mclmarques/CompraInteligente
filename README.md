@@ -1,14 +1,16 @@
 # Compra Inteligente
-<div style="display: flex; justify-content: center; gap: 10px;">
-  <img src="images/home-light.png" width="200">
-  <img src="images/search-light.png" width="200">
-  <img src="images/add-light.png" width="200">
-</div>
-
-<div style="display: flex; justify-content: center; gap: 10px; margin-top: 10px;">
-  <img src="images/home-dark.png" width="200">
-  <img src="images/search-dark.png" width="200">
-  <img src="images/add-dark.png" width="200">
+<div align="center">
+  <div style="display: flex; justify-content: center; gap: 10px;">
+    <img src="images/home-light.png" width="200">
+    <img src="images/search-light.png" width="200">
+    <img src="images/add-light.png" width="200">
+  </div>
+  
+  <div style="display: flex; justify-content: center; gap: 10px; margin-top: 10px;">
+    <img src="images/home-dark.png" width="200">
+    <img src="images/search-dark.png" width="200">
+    <img src="images/add-dark.png" width="200">
+  </div>
 </div>
 
 
