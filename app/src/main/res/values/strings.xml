@@ -59,7 +59,7 @@
     <string name="general">General</string>
     <string name="time_keep_data">Time to keep data: </string>
     <string name="delete_all_data">Delete image and extracted products </string>
-    <string name="credits">Credits</string>
+    <string name="about">About</string>
     <string name="credits_icon">App icon made by FoodDelivery available at </string>
 
     <!--Home screen-->

@@ -30,6 +30,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("debug")
         }
 
         debug {
@@ -110,7 +111,7 @@ dependencies {
     //Memory leak check
     //debugImplementation ("com.squareup.leakcanary:leakcanary-android:2.14")
     /*
-    Tested on 3/03/25 with release flag and using R8 and with debug build without R8. Both tests cicle thorugh
+    Tested on 3/03/25 with release flag and using R8 and with debug build without R8. Both tests circle through
     all the implemented screens at the time and waited for aobut a minute on each.
     No leaks found.
      */

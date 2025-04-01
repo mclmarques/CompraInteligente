@@ -1,24 +1,17 @@
 package com.mcldev.comprainteligente.ui.settings_screen
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.navigation.NavHostController
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -28,20 +21,21 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.LinkAnnotation
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.TextLinkStyles
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.withLink
+import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController
 import com.mcldev.comprainteligente.R
 
 @Composable
@@ -139,23 +133,25 @@ fun SettingsScreen(
             Spacer(Modifier.height(32.dp))
 
             Text(
-                text = stringResource(R.string.credits),
+                text = stringResource(R.string.about),
                 style = MaterialTheme.typography.headlineSmall,
             )
+            Image(
+                painter =  painterResource(R.mipmap.ic_launcher_foreground),
+                contentDescription = "App Icon",
+                modifier = Modifier.size(128.dp)
+            )
+            // Display developer information
             Text(
-                buildAnnotatedString {
-                    append(stringResource(R.string.credits_icon))
-                    withLink(
-                        LinkAnnotation.Url(
-                            "https://www.flaticon.com/br/icone-gratis/carrinho-de-supermercado_2203239?term=compras&page=1&position=74&origin=search&related_id=2203239",
-                            TextLinkStyles(style = SpanStyle(color = Color.Blue))
-                        )
-                    ) {
-                        append(" flaticon")
-                    }
-                }
+                text = "Developer: Marcel Marques",
+                //style = MaterialTheme.typography.titleMedium,
             )
 
+            // Display license information
+            Text(
+                text = "License: GPL 3.0",
+                //style = MaterialTheme.typography.titleMedium,
+            )
         }
     }
 }
