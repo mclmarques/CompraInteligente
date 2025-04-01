@@ -58,7 +58,7 @@ Compra Inteligente is an Android native application designed to help users manag
 
 ## Current Limitations
 
-- **Language & Currency**: Currently supports only Portuguese (Brazil) for language and currency.
+- **Language & Currency**: Currently supports only English with Brazilian currency.
 - **OCR Accuracy**: Relies on regex patterns for product identification which can fail if OCR is suboptimal. This may lead to incorrect product names or prices, an issue we aim to improve in future releases.
 
 ## Contributing
