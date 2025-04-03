@@ -61,9 +61,10 @@ Compra Inteligente is an Android native application designed to help users manag
 This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)**. You are free to use, modify, and distribute this software under the terms of this license.  
 
 Additionally, this project depends on the following third-party libraries, each with their respective licenses:  
-- **Tesseract** (Apache License 2.0)  
-- **Leptonica** (Custom License - Redistribution permitted with conditions)  
-- **libpng** (Custom License - Redistribution permitted with conditions)  
+- **Tesseract** ([Apache License 2.0](https://github.com/tesseract-ocr/tesseract))
+- **Leptonica** ([Custom License - Redistribution permitted with conditions](https://github.com/DanBloomberg/leptonica))
+- **libpng** ([Custom License - Redistribution permitted with conditions](http://www.libpng.org/pub/png/libpng.html))
+- **Tesseract4Android** ([Apache License 2.0](https://github.com/adaptech-cz/Tesseract4Android))
 
 Please refer to the respective licenses for more details regarding their terms and conditions.
 
@@ -124,9 +125,10 @@ Compra Inteligente é um aplicativo nativo Android projetado para ajudar os usu�
 Este projeto é licenciado sob a **GNU General Public License v3.0 (GPL-3.0)**. Você é livre para usar, modificar e distribuir este software de acordo com os termos desta licença.  
 
 Além disso, este projeto depende das seguintes bibliotecas de terceiros, cada uma com suas respectivas licenças:  
-- **Tesseract** (Licença Apache 2.0)  
-- **Leptonica** (Licença Personalizada - Redistribuição permitida com condições)  
-- **libpng** (Licença Personalizada - Redistribuição permitida com condições)  
+- **Tesseract** ([Licença Apache 2.0](https://github.com/tesseract-ocr/tesseract))
+- **Leptonica** ([Licença Personalizada - Redistribuição permitida com condições](https://github.com/DanBloomberg/leptonica))
+- **libpng** ([Licença Personalizada - Redistribuição permitida com condições](http://www.libpng.org/pub/png/libpng.html))
+- **Tesseract4Android** ([Licença Apache 2.0](https://github.com/adaptech-cz/Tesseract4Android))
 
 Consulte as respectivas licenças para mais detalhes sobre seus termos e condições.
 
