@@ -66,6 +66,7 @@ Additionally, this project depends on the following third-party libraries, each 
 - **libpng** (Custom License - Redistribution permitted with conditions)  
 
 Please refer to the respective licenses for more details regarding their terms and conditions.
+
 ---
 
 ## Portuguese (Brasil)
@@ -128,4 +129,5 @@ Além disso, este projeto depende das seguintes bibliotecas de terceiros, cada u
 - **libpng** (Licença Personalizada - Redistribuição permitida com condições)  
 
 Consulte as respectivas licenças para mais detalhes sobre seus termos e condições.
+
 ---
