@@ -1,7 +1,7 @@
 # Choose Language
 
 <div align="center">
-  <a href="#portuguese">Português (Brasil)</a> | <a href="#english">English</a>
+  <a href="#portuguese-brasil">Português (Brasil)</a> | <a href="#english">English</a>
 </div>
 
 ## English
@@ -66,9 +66,6 @@ Additionally, this project depends on the following third-party libraries, each 
 - **libpng** (Custom License - Redistribution permitted with conditions)  
 
 Please refer to the respective licenses for more details regarding their terms and conditions.
-
-*Note*: Users and developers must comply with the terms of these licenses when using or distributing their software. The GPL-3.0 ensures that any modifications are shared under the same open-source license, fostering collaborative development.
-
 ---
 
 ## Portuguese (Brasil)
@@ -131,8 +128,4 @@ Além disso, este projeto depende das seguintes bibliotecas de terceiros, cada u
 - **libpng** (Licença Personalizada - Redistribuição permitida com condições)  
 
 Consulte as respectivas licenças para mais detalhes sobre seus termos e condições.
-
-_Atenção_: Usuários e desenvolvedores devem cumprir os termos dessas licenças ao usar ou distribuir seus softwares. A GPL-3.0 garante que quaisquer modificações sejam compartilhadas sob a mesma licença de código aberto, fomentando o desenvolvimento colaborativo.
-
-
 ---
