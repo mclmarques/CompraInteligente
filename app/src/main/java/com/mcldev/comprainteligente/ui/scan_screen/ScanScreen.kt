@@ -149,9 +149,7 @@ fun ScanScreen(
                 errCode = errorCode
             )
         }
-
-        ProcessingState.Idle -> LoadingScreen()
-        ProcessingState.Loading -> LoadingScreen()
+        else -> LoadingScreen()
     }
 }
 

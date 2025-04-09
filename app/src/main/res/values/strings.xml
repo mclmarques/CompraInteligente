@@ -53,7 +53,7 @@
     <string name="month3">3 month</string>
     <string name="year1">1 year</string>
     <string name="year2">2 years</string>
-    <string name="never">2 never</string>
+    <string name="never">never</string>
 
     <!--Settings screen-->
     <string name="general">General</string>
