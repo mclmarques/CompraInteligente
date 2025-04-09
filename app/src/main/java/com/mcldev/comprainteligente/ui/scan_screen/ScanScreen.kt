@@ -125,7 +125,7 @@ fun ScanScreen(
         ProcessingState.Complete -> ListOfItems(
             products = products,
             prices = prices,
-            supermarket = supermarket ?: stringResource(R.string.supermarket_not_found),
+            supermarket = supermarket ?: "",
             updateProduct = { newName, newPrice, position ->
                 viewModel.updateProduct(position, newName, newPrice)
             },
@@ -194,7 +194,7 @@ fun ListOfItems(
                     onClick = saveProducts,
                     shape = CircleShape,
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Green.copy(alpha = 0.70f)),
-                    enabled = isSupermarketValid && validProducts // Uses computed validation
+                    enabled = isSupermarketValid && validProducts
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.confirm_24),
