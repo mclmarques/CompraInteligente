@@ -35,7 +35,8 @@ Compra Inteligente is an Android native application designed to help users manag
 - **Koin for DI**: Koin is used for dependency injection to manage the application's dependencies efficiently. This allows a future migration to KMP (Kotlin Multiplaform)
 
 - **Jetpack Compose & Material You**
-- **Tesseract & google ML kit for OCR**: we first use google ML document scanner to pre-process and crop the image of the receipts before passing it to Tesseract, imprving the OCR results. 
+- **Tesseract & google ML kit for OCR**: we first use google ML document scanner to pre-process and crop the image of the receipts before passing it to Tesseract, imprving the OCR results.
+-  **Room db**: allow users to store data locally
 #### Roadmap
 
 ##### v1.0: Foundation
@@ -102,6 +103,7 @@ Compra Inteligente é um aplicativo nativo Android projetado para ajudar os usu�
 
 - **Jetpack Compose & Material You**
 - **Tesseract & google ML kit for OCR**: utilizamos o escáner de docuemntos da google ML para pre-processar os tickets e depois utilizamos o procesamento OCR do Tesseract para assim conseguir os melhores resultados
+- **Room db**: permite usuários guardar datos localmente
 
 #### Roadmap
 
