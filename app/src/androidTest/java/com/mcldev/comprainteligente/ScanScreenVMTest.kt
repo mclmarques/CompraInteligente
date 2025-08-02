@@ -18,10 +18,50 @@ import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
 
+/**
+ * Unit tests for [ScanScreenVM], focused on verifying:
+ * - Product and supermarket insertion in the Room in-memory database.
+ * - Proper handling of missing supermarket scenarios.
+ * - Updates to supermarket average prices.
+ * - Correct deletion and update of items in the ViewModel.
+ *
+ * This test class uses:
+ * - In-memory Room database for isolation (no disk writes).
+ * - Kotlin coroutines and `runBlocking` for testing suspend functions.
+ * - JUnit4 lifecycle methods (`@Before` / `@After`) for setup and teardown.
+ *
+ * **Test Scenarios:**
+ *
+ * 1. **[saveProducts_shouldInsertProductsAndSupermarket]**
+ *    - Inserts products and a supermarket into the in-memory database.
+ *    - Verifies:
+ *      - All products are correctly persisted.
+ *      - Supermarket is created in the database.
+ *
+ * 2. **[saveProducts_withNullSupermarket_shouldTriggerOcrFault]**
+ *    - Calls `saveProducts()` without selecting a supermarket.
+ *    - Expects:
+ *      - `ProcessingState.Error` with code [ErrorCodes.TEXT_EXTRACTION_ERROR].
+ *
+ * 3. **[saveProducts_shouldUpdateSupermarketAveragePrice]**
+ *    - Pre-seeds a supermarket with an initial product and average price.
+ *    - Adds new products via the ViewModel.
+ *    - Verifies that the supermarket's `averagePrice` is updated correctly.
+ *
+ * 4. **[deleteItem_shouldRemoveProductAndPrice]**
+ *    - Populates the ViewModel with 2 products and prices.
+ *    - Deletes the first one and verifies:
+ *      - Product and price lists are updated.
+ *      - Remaining entries are correct.
+ *
+ * 5. **[updateProduct_shouldUpdateCorrectIndex]**
+ *    - Initializes the ViewModel with a single product.
+ *    - Updates the product name and price separately.
+ *    - Ensures that the correct indices are updated in the internal lists.
+ */
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ScanScreenVMTest {
-
     private lateinit var viewModel: ScanScreenVM
     private lateinit var db: DataBase
     private lateinit var productDao: ProductDao

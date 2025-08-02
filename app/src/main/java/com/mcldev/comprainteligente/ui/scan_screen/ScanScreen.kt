@@ -64,6 +64,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult
@@ -86,10 +87,9 @@ fun ScanScreen(
     navController: NavHostController,
 ) {
     val context = LocalContext.current
-    val processingState by viewModel.processingState.collectAsState()
-    val products by viewModel.products.collectAsState()
-    val prices by viewModel.prices.collectAsState()
-    val supermarket by viewModel.supermarket.collectAsState()
+    val processingState by viewModel.processingState.collectAsStateWithLifecycle()
+    val products by viewModel.products.collectAsStateWithLifecycle()
+    val supermarket by viewModel.supermarket.collectAsStateWithLifecycle()
 
     //Scanner stuff
     val scannerLauncher = rememberLauncherForActivityResult(
@@ -124,7 +124,6 @@ fun ScanScreen(
     when (processingState) {
         ProcessingState.Complete -> ListOfItems(
             products = products,
-            prices = prices,
             supermarket = supermarket ?: "",
             updateProduct = { newName, newPrice, position ->
                 viewModel.updateProduct(position, newName, newPrice)
@@ -169,8 +168,7 @@ fun ScanScreen(
  */
 @Composable
 fun ListOfItems(
-    products: List<String>,
-    prices: List<Float>,
+    products: List<ScannedProduct>,
     supermarket: String,
     updateSupermarket: (newName: String) -> Unit,
     updateProduct: (product: String?, price: Float?, position: Int) -> Unit,
@@ -181,11 +179,12 @@ fun ListOfItems(
     var isSupermarketValid by remember { mutableStateOf(supermarket.isNotEmpty()) }
 
     // Derived state: Ensures all products are non-empty and prices are > 0.0
-    val validProducts by remember(products, prices) {
+    val validProducts by remember(products) {
         derivedStateOf {
-            products.all { it.isNotEmpty() } && prices.all { it > 0.0f }
+            products.all { it.name.isNotEmpty() && it.price > 0.0f }
         }
     }
+
 
     Scaffold(
         floatingActionButton = {
@@ -245,9 +244,9 @@ fun ListOfItems(
             }
 
             LazyColumn {
-                items(products.size) { item ->
-                    var productName by remember(products[item]) { mutableStateOf(products[item]) }
-                    var productPrice by remember(prices[item]) { mutableStateOf(prices[item].toString()) }
+                items(products.size) { index ->
+                    var productName by remember(products[index].name) { mutableStateOf(products[index].name) }
+                    var productPrice by remember(products[index].price) { mutableStateOf(products[index].price.toString()) }
                     val focusManager = LocalFocusManager.current
                     val currencyTransformation = VisualTransformation { text ->
                         TransformedText(
@@ -274,7 +273,7 @@ fun ListOfItems(
                                     .weight(0.7f)
                                     .onFocusEvent { focusState ->
                                         if (!focusState.isFocused) {
-                                            updateProduct(productName, null, item)
+                                            updateProduct(productName, null, index)
                                         }
                                     },
                                 value = productName,
@@ -304,7 +303,7 @@ fun ListOfItems(
                                     .onFocusEvent { focusState ->
                                         if (!focusState.isFocused) {
                                             productPrice = productPrice.replace(",", ".")
-                                            updateProduct(null, productPrice.toFloatOrNull() ?: 0.0f, item)
+                                            updateProduct(null, productPrice.toFloatOrNull() ?: 0.0f, index)
                                         }
                                     },
                                 value = productPrice,
@@ -335,7 +334,7 @@ fun ListOfItems(
                             Spacer(Modifier.width(16.dp))
 
                             Button(
-                                onClick = { deleteProduct(item) },
+                                onClick = { deleteProduct(index) },
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = Color.Red.copy(0.75f),
                                     contentColor = Color.White
@@ -343,7 +342,7 @@ fun ListOfItems(
                             ) {
                                 Icon(
                                     painterResource(R.drawable.trash_24),
-                                    contentDescription = "Delete item"
+                                    contentDescription = "Delete index"
                                 )
                             }
                         }
