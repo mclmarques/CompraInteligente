@@ -16,10 +16,10 @@
       <SelectionState runConfigName="ProductDaoTest">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
-      <SelectionState runConfigName="SupermarketDaoTest">
+      <SelectionState runConfigName="ScanScreenVMTest">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
-      <SelectionState runConfigName="ScanScreenVMTest">
+      <SelectionState runConfigName="SupermarketDaoTest">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
     </selectionStates>

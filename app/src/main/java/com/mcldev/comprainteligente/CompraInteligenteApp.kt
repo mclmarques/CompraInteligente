@@ -10,11 +10,11 @@ import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
 import java.util.concurrent.TimeUnit
 
-class CompraInteligenteApp : Application() {
+class CCompraInteligenteApp : Application() {
     override fun onCreate() {
         super.onCreate()
         startKoin {
-            androidContext(this@CompraInteligenteApp)
+            androidContext(this@CCompraInteligenteApp)
             modules(appModule)
         }
         scheduleDataCleanup()
@@ -37,6 +37,4 @@ class CompraInteligenteApp : Application() {
             cleanupWorkRequest
         )
     }
-
-
 }
