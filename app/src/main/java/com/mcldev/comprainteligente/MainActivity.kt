@@ -49,7 +49,7 @@ class MainActivity : ComponentActivity() {
                     when (result) {
                         is StartupResult.Error -> {
                             AlertDialog(
-                                onConfirmation = { finish() },
+                                onConfirmation = { finishAffinity() },
                                 errCode = result.code,
                                 icon = R.drawable.warning_ic
                             )
