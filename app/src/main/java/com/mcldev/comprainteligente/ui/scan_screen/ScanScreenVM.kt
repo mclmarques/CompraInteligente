@@ -12,6 +12,7 @@ import androidx.lifecycle.viewModelScope
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanner
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions.RESULT_FORMAT_JPEG
+import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions.SCANNER_MODE_BASE
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions.SCANNER_MODE_FULL
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanning
 import com.googlecode.tesseract.android.TessBaseAPI
@@ -63,7 +64,7 @@ class ScanScreenVM(
             .setGalleryImportAllowed(true)
             .setPageLimit(1)
             .setResultFormats(RESULT_FORMAT_JPEG)
-            .setScannerMode(SCANNER_MODE_FULL)
+            .setScannerMode(SCANNER_MODE_BASE)
             .build()
         return GmsDocumentScanning.getClient(options)
     }
@@ -273,7 +274,7 @@ class ScanScreenVM(
             tessBaseAPI = TessBaseAPI()
             tessBaseAPI.init(path, "por") // or other languages
             tessBaseAPI.setImage(image)
-            tessBaseAPI.setPageSegMode(TessBaseAPI.PageSegMode.PSM_SINGLE_BLOCK)
+            tessBaseAPI.setPageSegMode(TessBaseAPI.PageSegMode.PSM_AUTO)
             val recognizedText = tessBaseAPI.utF8Text
             tessBaseAPI.stop()
             tessBaseAPI.recycle()
