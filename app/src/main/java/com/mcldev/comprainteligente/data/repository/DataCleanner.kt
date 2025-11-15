@@ -33,16 +33,16 @@ class DataCleanupWorker(
 
         val cutoffDate = calculateCutoffDate(retentionPeriod)
 
-        //if deleteAllData is true, images and contents of the db are deleted, else only db contents are removed
+        //if deleteAllData is true, images and contents of the db are deleted, else only images are removed
         val deleteAllData = getDeleteAllDataPreference()
         if (deleteAllData) {
-            val listProducts = productDao.getAllProducts()
-            for(product in listProducts) {
-                productDao.timeBasedDelete(cutoffDate)
-            }
+            productDao.timeBasedDelete(cutoffDate)
             supermarketDao.deleteEmptySupermarkets()
+
             //Delete images
             val storageDir: File? = applicationContext.getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+
+            //Verifies if the directory existis and cheacks that the files inside are the images, with the epected format and naming
             if (storageDir == null || !storageDir.exists()) {
                 //Log.d("DataCleanupWorker", "Image directory not found, skipping deletion.")
                 return Result.failure()
@@ -52,8 +52,10 @@ class DataCleanupWorker(
                 file.name.startsWith("receipt") && file.extension == "jpg"
             } ?: return Result.failure()
 
+
             for (file in imageFiles) {
                 if (file.lastModified() < cutoffDate) {
+                    
                     file.delete()
                     //Log.d("DataCleanupWorker", "Deleting image: ${file.name}, Success: $deleted")
                 }
@@ -65,14 +67,31 @@ class DataCleanupWorker(
                 return Result.failure()
             }
 
-            val imageFiles = storageDir.listFiles { file ->
-                file.name.startsWith("receipt") && file.extension == "jpg"
-            } ?: return Result.failure()
+            val imageFiles = try {
+                storageDir.listFiles { file ->
+                    file.name.startsWith("receipt") && file.extension == "jpg"
+                } ?: emptyArray()
+            } catch (e: Exception) {
+                return Result.failure()
+                //e.printStackTrace()
+            }
 
             for (file in imageFiles) {
                 if (file.lastModified() < cutoffDate) {
-                    file.delete()
-                    //Log.d("DataCleanupWorker", "Deleting image: ${file.name}, Success: $deleted")
+                    try {
+                        file.delete()
+                        //Log.d("DataCleanupWorker", "Deleted image: ${file.name}")
+                    } catch (e: SecurityException) {
+                        return Result.failure()
+                        // Permission or file in use issues
+                        //e.printStackTrace()
+                        //Log.e("DataCleanupWorker", "Failed to delete image: ${file.name}", e)
+                    } catch (e: Exception) {
+                        return Result.failure()
+                        // Catch any other IO-related exceptions
+                        //e.printStackTrace()
+                        //Log.e("DataCleanupWorker", "Unexpected error deleting: ${file.name}", e)
+                    }
                 }
             }
         }

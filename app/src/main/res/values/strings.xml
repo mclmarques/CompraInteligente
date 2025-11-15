@@ -53,7 +53,7 @@
     <string name="month3">3 month</string>
     <string name="year1">1 year</string>
     <string name="year2">2 years</string>
-    <string name="never">2 never</string>
+    <string name="never">never</string>
 
     <!--Settings screen-->
     <string name="general">General</string>
@@ -64,7 +64,8 @@
 
     <!--Home screen-->
     <string name="no_supermarkets">No supermarkets are saved yet. Let\'s starting scanning so you save uo money!</string>
-
+    <string name="settings">Settings</string>
+    <string name="no_results">No results found</string>
 
     <!--content descriptions-->
     <string name="delete_supermarket_cd">Delete selected supermarkets</string>

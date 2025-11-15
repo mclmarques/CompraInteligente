@@ -37,6 +37,4 @@ class CompraInteligenteApp : Application() {
             cleanupWorkRequest
         )
     }
-
-
 }

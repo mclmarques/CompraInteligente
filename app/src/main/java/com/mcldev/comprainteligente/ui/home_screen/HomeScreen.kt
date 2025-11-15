@@ -53,6 +53,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.mcldev.comprainteligente.R
 import com.mcldev.comprainteligente.data.entities.Supermarket
@@ -71,6 +72,11 @@ import java.util.Locale
  * ## UI States:
  * - **Normal Mode**: Users can browse supermarkets and search for products.
  * - **Selection Mode**: Allows users to select multiple supermarkets for deletion.
+ *
+ * Last revision: 15/08/2025. INCLUDES VIEWMODEL:
+ * There are minor improvements, like moving a few things from the view to the viewmodel to enhance testing and
+ * better separation of concerns.
+ * Also all strings are already using strings from the XML.
  */
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -81,8 +87,8 @@ fun HomeScreen(
     navController: NavHostController
 ) {
     //search
-    val searchText by viewModel.searchText.collectAsState()
-    val searchResults by viewModel.searchResults.collectAsState()
+    val searchText by viewModel.searchText.collectAsStateWithLifecycle()
+    val searchResults by viewModel.searchResults.collectAsStateWithLifecycle()
     var expanded by rememberSaveable { mutableStateOf(false) }
     val padding by animateDpAsState(targetValue = if (expanded) 0.dp else 8.dp)
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -91,10 +97,10 @@ fun HomeScreen(
     var showMenu by remember { mutableStateOf(false) }
 
     //Supermarkets shown in the lazy column
-    val supermarkets by viewModel.supermarkets.collectAsState()
+    val supermarkets by viewModel.supermarkets.collectAsStateWithLifecycle()
 
     //selection mode stuff + animation for the dynamic FAB
-    val selectionMode by viewModel.selectionMode.collectAsState()
+    val selectionMode by viewModel.selectionMode.collectAsStateWithLifecycle()
 
     // Rotation Animation
     val rotationAngle by animateFloatAsState(
@@ -180,10 +186,10 @@ fun HomeScreen(
                                         leadingIcon = {
                                             Icon(
                                                 Icons.Default.Settings,
-                                                contentDescription = "Settings"
+                                                contentDescription = stringResource(R.string.settings)
                                             )
                                         },
-                                        text = { Text("Settings") },
+                                        text = { Text(stringResource(R.string.settings)) },
                                         onClick = {
                                             showMenu = false
                                             navController.navigate(Screen.Settings.route)
@@ -254,7 +260,7 @@ fun HomeScreen(
                     }
                 } else {
                     Text(
-                        text = "No results found",
+                        text = stringResource(R.string.no_results),
                         modifier = Modifier
                             .align(Alignment.CenterHorizontally)
                             .padding(16.dp)

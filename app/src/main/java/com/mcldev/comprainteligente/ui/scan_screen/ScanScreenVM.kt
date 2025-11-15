@@ -5,12 +5,14 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Environment
+import android.util.Log
 import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanner
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions.RESULT_FORMAT_JPEG
+import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions.SCANNER_MODE_BASE
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions.SCANNER_MODE_FULL
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanning
 import com.googlecode.tesseract.android.TessBaseAPI
@@ -23,6 +25,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.forEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -39,7 +42,7 @@ import java.io.IOException
  * Internal methods which in essence are the OCR operation, OCR helper methods and post-processing OCR
  */
 class ScanScreenVM(
-    private val path: String?,
+    private val path: String,
     private val productDao: ProductDao,
     private val supermarketDao: SupermarketDao
 ) : ViewModel() {
@@ -48,11 +51,8 @@ class ScanScreenVM(
     private val _processingState = MutableStateFlow<ProcessingState>(ProcessingState.Idle)
     val processingState: StateFlow<ProcessingState> = _processingState
 
-    private val _products = MutableStateFlow(mutableListOf<String>())
+    private val _products = MutableStateFlow(mutableListOf<ScannedProduct>())
     val products = _products.asStateFlow()
-
-    private val _prices = MutableStateFlow(mutableListOf<Float>())
-    val prices = _prices.asStateFlow()
 
     private val _supermarket = MutableStateFlow<String?>(null)
     val supermarket = _supermarket.asStateFlow()
@@ -60,11 +60,12 @@ class ScanScreenVM(
 
     fun prepareScanner(): GmsDocumentScanner {
         //Scanner stuff
+        //TODO: add support to scan more than 1 image simultaneously
         val options = GmsDocumentScannerOptions.Builder()
             .setGalleryImportAllowed(true)
             .setPageLimit(1)
             .setResultFormats(RESULT_FORMAT_JPEG)
-            .setScannerMode(SCANNER_MODE_FULL)
+            .setScannerMode(SCANNER_MODE_BASE)
             .build()
         return GmsDocumentScanning.getClient(options)
     }
@@ -74,7 +75,7 @@ class ScanScreenVM(
      * This changes the State to Loading and calls the loadAndSave bitmap to load the bitmap from the URI and locally save the image.
      * Afterwards it cals the performOcr and finally the postProcessOcr, that takes the String from the performOcr and
      * adjust it.
-     * The method doesn't return anything because the postProcessOcr already saves the data into the apropriete
+     * The method doesn't return anything because the postProcessOcr already saves the data into the appropriate
      * _products & _prices lists
      * Once complete, the State is changed to Complete
      *
@@ -92,7 +93,9 @@ class ScanScreenVM(
                     )
                 }
                 if (bitmap != null) {
-                    performOCR(bitmap!!)?.let { postProcessOCRText(it) }
+                    performOCR(bitmap!!)?.let {
+                        Log.i("OCR", it)
+                        postProcessOCRText(it) }
                     _processingState.value = ProcessingState.Complete
                 } else {
                     ocrFault()
@@ -106,58 +109,86 @@ class ScanScreenVM(
      * @param position: position of the item to be deleted
      */
     fun deleteItem(position: Int) {
-        if (position in _products.value.indices) {
-            _products.value = _products.value.toMutableList().apply { removeAt(position) }
-            _prices.value = _prices.value.toMutableList().apply { removeAt(position) }
+        _products.value = _products.value.toMutableList().apply {
+            if (position in indices) removeAt(position)
         }
     }
 
     /**
-     * Launches a coroutine and checks if a supermarket name was saved. If it was it searches to see if that supermarket
-     * is on the DB. This is needed as all scanned products need to be linked to a supermarket.
-     * If no supermarket is found a new one is created.
-     * If the process of creating a new supermarket fails, an storage error is triggered as it is the
-     * most likely cause of the issue
+     * Calculates the new average price for a supermarket when adding new products.
+     */
+    private fun calculateNewAveragePrice(
+        oldAverage: Float,
+        oldCount: Int,
+        newPrices: List<Float>
+    ): Float {
+        if (oldCount == 0) return newPrices.average().toFloat()
+        val totalOld = oldAverage * oldCount
+        val totalNew = newPrices.sum()
+        val newCount = oldCount + newPrices.size
+        return ((totalOld + totalNew) / newCount)
+    }
+
+    /**
+     * This methods checks that a supermarket name was provided and search's for it in the DB.
+     * If it is found, the average is updated, and the products get linked to that supermarket
+     * Else, a new supermarket is created, and the average and products get linked to it.
+     * If this process fails, an error screen is shown, indicating an storage error as the likely cause.
      */
     fun saveProducts() {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch(Dispatchers.Default) {
             var supermarketEntity: Supermarket?
             if (supermarket.value != null) {
-                supermarketEntity = supermarketDao.getSupermarketByName(supermarketName = _supermarket.value!!)
+                //creates a list of the new prices and searches for the supermarket name in the DB.
+                val newPrices = mutableListOf<Float>()
+                _products.value.forEach { product ->
+                    newPrices.add(product.price)
+                }
+                supermarketEntity =
+                    supermarketDao.getSupermarketByName(supermarketName = _supermarket.value!!)
                 if (supermarketEntity != null) {
-                    val oldCount = supermarketDao.getProductCount(supermarketEntity.id)
-                    if(oldCount == 0) {
-                        supermarketDao.upsertSupermarket(supermarketEntity.copy(averagePrice = _prices.value.average().toFloat()))
-                    }
-                    else {
-                        val average = ((supermarketEntity.averagePrice * oldCount) + _prices.value.sum()) / (oldCount + _prices.value.size)
-                        supermarketDao.upsertSupermarket(supermarketEntity.copy(averagePrice = average))
+                    supermarketDao.upsertSupermarket(
+                        supermarketEntity.copy(
+                            averagePrice = calculateNewAveragePrice(
+                                supermarketEntity.averagePrice,
+                                supermarketDao.getProductCount(supermarketEntity.id),
+                                newPrices
+                            )
+                        )
+                    )
 
-                    }
                     for (item in products.value.indices) {
                         val product = Product(
-                            name = products.value[item],
-                            price = prices.value[item],
+                            name = products.value.get(item).name,
+                            price = products.value.get(item).price,
                             supermarketId = supermarketEntity.id,
                             date = System.currentTimeMillis()
                         )
                         productDao.upsertProduct(product)
                     }
                 } else {
-                    supermarketDao.upsertSupermarket(Supermarket(name = supermarket.value!!, averagePrice = _prices.value.average().toFloat()))
+                    supermarketDao.upsertSupermarket(
+                        Supermarket(
+                            name = supermarket.value!!,
+                            averagePrice = calculateNewAveragePrice(
+                                0F,
+                                0,
+                                newPrices
+                            )
+                        )
+                    )
                     supermarketEntity = supermarketDao.getSupermarketByName(supermarket.value!!)
                     if (supermarketEntity != null) {
                         for (item in products.value.indices) {
                             val product = Product(
-                                name = products.value[item],
-                                price = prices.value[item],
+                                name = products.value.get(item).name,
+                                price = products.value.get(item).price,
                                 supermarketId = supermarketEntity.id,
                                 date = System.currentTimeMillis()
                             )
                             productDao.upsertProduct(product)
                         }
                     } else storageFault()
-
                 }
             } else ocrFault()
         }
@@ -172,12 +203,13 @@ class ScanScreenVM(
      * If you only pass the position, the method won't do anything
      */
     fun updateProduct(position: Int, newProduct: String? = null, newPrice: Float? = null) {
-        if (position in _products.value.indices) {
-            if (newProduct != null) {
-                _products.value =
-                    _products.value.toMutableList().apply { this[position] = newProduct }
-            } else if (newPrice != null) {
-                _prices.value = _prices.value.toMutableList().apply { this[position] = newPrice }
+        _products.value = _products.value.toMutableList().apply {
+            if (position in indices) {
+                val current = this[position]
+                this[position] = current.copy(
+                    name = newProduct ?: current.name,
+                    price = newPrice ?: current.price
+                )
             }
         }
     }
@@ -243,48 +275,117 @@ class ScanScreenVM(
             tessBaseAPI = TessBaseAPI()
             tessBaseAPI.init(path, "por") // or other languages
             tessBaseAPI.setImage(image)
-            tessBaseAPI.setPageSegMode(TessBaseAPI.PageSegMode.PSM_SINGLE_BLOCK)
+            tessBaseAPI.setPageSegMode(TessBaseAPI.PageSegMode.PSM_AUTO)
             val recognizedText = tessBaseAPI.utF8Text
             tessBaseAPI.stop()
             tessBaseAPI.recycle()
             recognizedText
         }
     }
-
     private suspend fun postProcessOCRText(ocrText: String) {
         //Log.i("debug", ocrText)
         viewModelScope.launch(Dispatchers.Default) {
             val lines = ocrText.lines()
-            _supermarket.value = lines[1]
-            val productRegex = Regex("""\d{6,14}\s+((\w+\s?){1,5})""") // Product code + up to 5 words
-            val priceRegex = Regex("""(\d{1,3}[.,]\d{2})""")
+                .map { it.trim().replace("[^\\p{Print}]", "") }
+                .filter { it.isNotBlank() }
 
-            //Work internally on a copy
-            val updatedProducts = _products.value.toMutableList()
-            val updatedPrices = _prices.value.toMutableList()
+            if (lines.size < 2) {
+                ocrFault()
+                return@launch
+            }
 
-            //line 9 seems to be a good start for the majority of bigger supermarkets.
-            for (i in 9 until lines.size) {
-                val productMatch = productRegex.find(lines[i])
-                if (productMatch != null) {
-                    val productDescription = productMatch.groupValues[1].trim()
+            val cnpjLineIndex = lines.indexOfFirst { it.contains("CNPJ", ignoreCase = true) }
+            _supermarket.value = if (cnpjLineIndex != -1 && cnpjLineIndex + 1 < lines.size)
+                lines[cnpjLineIndex + 1]
+            else "DESCONHECIDO"
 
-                    // Ensure the product isn't already added
-                    if (!updatedProducts.contains(productDescription)) {
-                        updatedProducts.add(productDescription)
+            val skipKeywords = listOf(
+                "TOTAL", "VALOR", "PAGAMENTO", "TRIBUTO", "DESCONTO",
+                "CARTAO", "CHECKOUT", "OPERADOR", "LEGAL", "MASTERCARD", "CNPJ", "CPF"
+            )
+            val stopKeywords = listOf(
+                "TOTAL", "VALOR", "PAGAMENTO", "CHECKOUT", "MASTERCARD", "VISA", "CNPJ", "CPF"
+            )
+            val priceRegex = Regex("""\d+[.,]\d{2}""")
+            val codeRegex = Regex("""\d{13}""")
 
-                        // Find the price
-                        val priceMatch =
-                            if (i + 1 < lines.size) priceRegex.find(lines[i + 1]) else null
-                        val priceString = priceMatch?.value?.replace(",", ".")
-                        val price = priceString?.toFloatOrNull() ?: 0.0f
+            val productBlocks = mutableListOf<String>()
+            var buffer = ""
+            var collecting = false
 
-                        updatedPrices.add(price)
+            fun isNewProductCandidate(line: String): Boolean {
+                val digits = line.filter { it.isDigit() }
+                return digits.length >= 13
+            }
+
+            for (line in lines.drop(cnpjLineIndex + 2)) {
+                val cleaned = line
+                    .replace("[^0-9A-Za-zÀ-ÿ,./\\s-]", "")
+                    .trim()
+
+                // Stop parsing if we reach payment/fiscal info
+                if (stopKeywords.any { cleaned.contains(it, ignoreCase = true) }) {
+                    if (buffer.isNotEmpty()) {
+                        productBlocks.add(buffer.trim())
+                        buffer = ""
                     }
+                    break
+                }
+
+                val isGarbage = skipKeywords.any { cleaned.contains(it, ignoreCase = true) }
+                val startsWithCode = isNewProductCandidate(cleaned)
+
+                if (startsWithCode) {
+                    if (buffer.isNotEmpty()) {
+                        productBlocks.add(buffer.trim())
+                        buffer = ""
+                    }
+                    buffer = cleaned
+                    collecting = true
+                } else if (collecting && !isGarbage) {
+                    buffer += " $cleaned"
+                } else if (isGarbage && buffer.isNotEmpty()) {
+                    productBlocks.add(buffer.trim())
+                    buffer = ""
+                    collecting = false
                 }
             }
-            _products.value = updatedProducts
-            _prices.value = updatedPrices
+
+            if (buffer.isNotEmpty()) productBlocks.add(buffer.trim())
+
+            val updatedProducts = mutableListOf<ScannedProduct>()
+
+            for (block in productBlocks) {
+                val code = codeRegex.find(block)?.value ?: ""
+                val prices = priceRegex.findAll(block)
+                    .map { it.value.replace(",", ".").toFloatOrNull() }
+                    .filterNotNull()
+                    .toList()
+                val totalPrice = prices.lastOrNull() ?: 0.0f
+
+                // Name extraction
+                val tokens = block.split(Regex("\\s+"))
+                val codeIndex = if (code.isNotEmpty()) tokens.indexOfFirst { it.contains(code) } else 0
+                val firstPriceIndex = tokens.indexOfFirst { it.matches(priceRegex) }
+
+                val nameTokens = if (firstPriceIndex > codeIndex && codeIndex >= 0)
+                    tokens.subList(codeIndex + 1, firstPriceIndex)
+                else
+                    tokens.drop(codeIndex + 1)
+
+                val productName = nameTokens
+                    .filterNot { it.matches(priceRegex) || it.matches(Regex("""\d+UN""", RegexOption.IGNORE_CASE)) || it.equals("UN", true) }
+                    .joinToString(" ")
+                    .takeIf { it.isNotBlank() } ?: "unknown product name"
+
+                updatedProducts.add(ScannedProduct(productName, totalPrice))
+            }
+
+            if (updatedProducts.isEmpty()) {
+                ocrFault()
+            } else {
+                _products.value = updatedProducts
+            }
         }
     }
 }
@@ -319,3 +420,8 @@ sealed class ProcessingState {
     data object Complete : ProcessingState()
     data class Error(val code: ErrorCodes) : ProcessingState()
 }
+
+data class ScannedProduct(
+    var name: String,
+    var price: Float
+)

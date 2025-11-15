@@ -1,23 +1,23 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    id("com.google.devtools.ksp") version "2.0.21-1.0.27"
+    id("com.google.devtools.ksp") version "2.2.0-2.0.2"
     alias(libs.plugins.kotlin.serialization)
 }
 
 android {
     namespace = "com.mcldev.comprainteligente"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.mcldev.comprainteligente"
         minSdk = 29
-        //noinspection EditedTargetSdkVersion
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -44,11 +44,13 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
-    kotlinOptions {
-        jvmTarget = "11"
+    kotlin {
+        compilerOptions {
+            jvmTarget = JvmTarget.fromTarget("21")
+        }
     }
     buildFeatures {
         compose = true
@@ -78,6 +80,10 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
+    //MockK
+    androidTestImplementation(libs.mockk.android)
+    testImplementation(libs.mockk)
+
     //MaterialTheme3
     implementation(libs.material3)
 
@@ -99,7 +105,7 @@ dependencies {
     //Koin
     // Koin for Android
     implementation(libs.koin.android)
-    implementation(libs.koin.test)
+    testImplementation(libs.koin.test)
 
     //Work Manager
     implementation(libs.androidx.work.runtime.ktx)
