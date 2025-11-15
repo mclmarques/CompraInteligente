@@ -80,6 +80,10 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
+    //MockK
+    androidTestImplementation(libs.mockk.android)
+    testImplementation(libs.mockk)
+
     //MaterialTheme3
     implementation(libs.material3)
 
@@ -101,7 +105,7 @@ dependencies {
     //Koin
     // Koin for Android
     implementation(libs.koin.android)
-    implementation(libs.koin.test)
+    testImplementation(libs.koin.test)
 
     //Work Manager
     implementation(libs.androidx.work.runtime.ktx)

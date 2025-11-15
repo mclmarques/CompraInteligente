@@ -60,6 +60,7 @@ class ScanScreenVM(
 
     fun prepareScanner(): GmsDocumentScanner {
         //Scanner stuff
+        //TODO: add support to scan more than 1 image simultaneously
         val options = GmsDocumentScannerOptions.Builder()
             .setGalleryImportAllowed(true)
             .setPageLimit(1)
