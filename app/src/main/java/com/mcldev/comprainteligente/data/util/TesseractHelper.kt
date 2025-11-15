@@ -5,7 +5,7 @@ import java.io.File
 import java.io.FileOutputStream
 
 /**
- * This methods creates the /tessdata directory and populate it with the data provided from the
+ * This methods checks if the /tessdata directory exists and its populated. If not, it creates the /tessdata directory and populate it with the data provided from the
  * assets folder
  * @return: String containing the PATH to the tesseract data folder or NULL if it fails
  */
