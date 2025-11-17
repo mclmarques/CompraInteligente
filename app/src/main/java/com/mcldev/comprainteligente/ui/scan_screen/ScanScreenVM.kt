@@ -13,19 +13,17 @@ import com.google.mlkit.vision.documentscanner.GmsDocumentScanner
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions.RESULT_FORMAT_JPEG
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions.SCANNER_MODE_BASE
-import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions.SCANNER_MODE_FULL
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanning
 import com.googlecode.tesseract.android.TessBaseAPI
-import com.mcldev.comprainteligente.data.entities.Product
 import com.mcldev.comprainteligente.data.dao.ProductDao
-import com.mcldev.comprainteligente.data.entities.Supermarket
 import com.mcldev.comprainteligente.data.dao.SupermarketDao
+import com.mcldev.comprainteligente.data.entities.Product
+import com.mcldev.comprainteligente.data.entities.Supermarket
 import com.mcldev.comprainteligente.ui.util.ErrorCodes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.forEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -283,110 +281,33 @@ class ScanScreenVM(
         }
     }
     private suspend fun postProcessOCRText(ocrText: String) {
-        //Log.i("debug", ocrText)
-        viewModelScope.launch(Dispatchers.Default) {
-            val lines = ocrText.lines()
-                .map { it.trim().replace("[^\\p{Print}]", "") }
-                .filter { it.isNotBlank() }
+        val lines = ocrText.lines()
+        _supermarket.value = lines.getOrNull(1)
 
-            if (lines.size < 2) {
-                ocrFault()
-                return@launch
-            }
+        val productRegex = Regex("""\d{6,14}\s+((\w+\s?){1,5})""")
+        val priceRegex = Regex("""(\d{1,3}[.,]\d{2})""")
 
-            val cnpjLineIndex = lines.indexOfFirst { it.contains("CNPJ", ignoreCase = true) }
-            _supermarket.value = if (cnpjLineIndex != -1 && cnpjLineIndex + 1 < lines.size)
-                lines[cnpjLineIndex + 1]
-            else "DESCONHECIDO"
+        val updatedProducts = _products.value.toMutableList()
 
-            val skipKeywords = listOf(
-                "TOTAL", "VALOR", "PAGAMENTO", "TRIBUTO", "DESCONTO",
-                "CARTAO", "CHECKOUT", "OPERADOR", "LEGAL", "MASTERCARD", "CNPJ", "CPF"
-            )
-            val stopKeywords = listOf(
-                "TOTAL", "VALOR", "PAGAMENTO", "CHECKOUT", "MASTERCARD", "VISA", "CNPJ", "CPF"
-            )
-            val priceRegex = Regex("""\d+[.,]\d{2}""")
-            val codeRegex = Regex("""\d{13}""")
+        for (i in 9 until lines.size) {
+            val productMatch = productRegex.find(lines[i])
+            if (productMatch != null) {
+                val name = productMatch.groupValues[1].trim()
 
-            val productBlocks = mutableListOf<String>()
-            var buffer = ""
-            var collecting = false
+                if (updatedProducts.none { it.name == name }) {
 
-            fun isNewProductCandidate(line: String): Boolean {
-                val digits = line.filter { it.isDigit() }
-                return digits.length >= 13
-            }
+                    val priceMatch =
+                        if (i + 1 < lines.size) priceRegex.find(lines[i + 1]) else null
 
-            for (line in lines.drop(cnpjLineIndex + 2)) {
-                val cleaned = line
-                    .replace("[^0-9A-Za-zÀ-ÿ,./\\s-]", "")
-                    .trim()
+                    val priceString = priceMatch?.value?.replace(",", ".")
+                    val price = priceString?.toFloatOrNull() ?: 0f
 
-                // Stop parsing if we reach payment/fiscal info
-                if (stopKeywords.any { cleaned.contains(it, ignoreCase = true) }) {
-                    if (buffer.isNotEmpty()) {
-                        productBlocks.add(buffer.trim())
-                        buffer = ""
-                    }
-                    break
+                    updatedProducts.add(ScannedProduct(name = name, price = price))
                 }
-
-                val isGarbage = skipKeywords.any { cleaned.contains(it, ignoreCase = true) }
-                val startsWithCode = isNewProductCandidate(cleaned)
-
-                if (startsWithCode) {
-                    if (buffer.isNotEmpty()) {
-                        productBlocks.add(buffer.trim())
-                        buffer = ""
-                    }
-                    buffer = cleaned
-                    collecting = true
-                } else if (collecting && !isGarbage) {
-                    buffer += " $cleaned"
-                } else if (isGarbage && buffer.isNotEmpty()) {
-                    productBlocks.add(buffer.trim())
-                    buffer = ""
-                    collecting = false
-                }
-            }
-
-            if (buffer.isNotEmpty()) productBlocks.add(buffer.trim())
-
-            val updatedProducts = mutableListOf<ScannedProduct>()
-
-            for (block in productBlocks) {
-                val code = codeRegex.find(block)?.value ?: ""
-                val prices = priceRegex.findAll(block)
-                    .map { it.value.replace(",", ".").toFloatOrNull() }
-                    .filterNotNull()
-                    .toList()
-                val totalPrice = prices.lastOrNull() ?: 0.0f
-
-                // Name extraction
-                val tokens = block.split(Regex("\\s+"))
-                val codeIndex = if (code.isNotEmpty()) tokens.indexOfFirst { it.contains(code) } else 0
-                val firstPriceIndex = tokens.indexOfFirst { it.matches(priceRegex) }
-
-                val nameTokens = if (firstPriceIndex > codeIndex && codeIndex >= 0)
-                    tokens.subList(codeIndex + 1, firstPriceIndex)
-                else
-                    tokens.drop(codeIndex + 1)
-
-                val productName = nameTokens
-                    .filterNot { it.matches(priceRegex) || it.matches(Regex("""\d+UN""", RegexOption.IGNORE_CASE)) || it.equals("UN", true) }
-                    .joinToString(" ")
-                    .takeIf { it.isNotBlank() } ?: "unknown product name"
-
-                updatedProducts.add(ScannedProduct(productName, totalPrice))
-            }
-
-            if (updatedProducts.isEmpty()) {
-                ocrFault()
-            } else {
-                _products.value = updatedProducts
             }
         }
+
+        _products.value = updatedProducts
     }
 }
 

@@ -26,6 +26,7 @@ workRuntimeKtx = "2.11.0"
 [libraries]
 androidx-activity-ktx = { module = "androidx.activity:activity-ktx", version.ref = "activityCompose" }
 androidx-compose-bom-v20250101 = { module = "androidx.compose:compose-bom", version.ref = "composeBomVersion" }
+androidx-compose-material-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
 androidx-compose-material3-material3 = { module = "androidx.compose.material3:material3" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-fragment-compose = { module = "androidx.fragment:fragment-compose", version.ref = "fragmentCompose" }
