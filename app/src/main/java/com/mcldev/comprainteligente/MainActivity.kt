@@ -1,6 +1,7 @@
 package com.mcldev.comprainteligente
 
 import android.os.Bundle
+import android.os.Process
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -20,25 +21,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
 import com.mcldev.comprainteligente.ui.AppNavigation
-import com.mcldev.comprainteligente.ui.home_screen.HomeScreen
-import com.mcldev.comprainteligente.ui.home_screen.HomeScreenVM
-import com.mcldev.comprainteligente.ui.scan_screen.ScanScreen
-import com.mcldev.comprainteligente.ui.scan_screen.ScanScreenVM
-import com.mcldev.comprainteligente.ui.settings_screen.SettingsScreen
-import com.mcldev.comprainteligente.ui.settings_screen.SettingsScreenVM
 import com.mcldev.comprainteligente.ui.theme.CompraInteligenteTheme
 import com.mcldev.comprainteligente.ui.util.ErrorCodes
-import com.mcldev.comprainteligente.ui.util.Screen
 import com.mcldev.comprainteligente.util.StartupChecker
 import com.mcldev.comprainteligente.util.StartupResult
 import org.koin.android.ext.android.inject
-import org.koin.androidx.viewmodel.ext.android.getViewModel
-import kotlin.system.exitProcess
-import android.os.Process
 import kotlin.system.exitProcess
 
 class MainActivity : ComponentActivity() {
