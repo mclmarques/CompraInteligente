@@ -71,6 +71,7 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.activity.ktx)
     implementation(libs.androidx.fragment.compose)
+    implementation(libs.material)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -87,6 +88,7 @@ dependencies {
     //MaterialTheme3
     implementation(libs.material3)
     implementation(libs.androidx.compose.material.icons.extended)
+    implementation(libs.androidx.compose.material3.material3)
 
 
     //Room
@@ -115,7 +117,7 @@ dependencies {
 
     //Suport for links inside the credits section
     implementation(platform(libs.androidx.compose.bom.v20250101))
-    implementation(libs.androidx.compose.material3.material3)
+
 
     //Memory leak check
     //debugImplementation ("com.squareup.leakcanary:leakcanary-android:2.14")

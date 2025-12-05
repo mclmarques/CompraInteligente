@@ -28,6 +28,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
+import java.util.UUID
 
 /**
  * @param path: path to load the data of tesseract
@@ -104,12 +105,10 @@ class ScanScreenVM(
 
     //Data management (save, modify or edit products)
     /**
-     * @param position: position of the item to be deleted
+     * @param id: p
      */
-    fun deleteItem(position: Int) {
-        _products.value = _products.value.toMutableList().apply {
-            if (position in indices) removeAt(position)
-        }
+    fun deleteItem(id: String) {
+        _products.value = _products.value.filter { it.id != id }.toMutableList()
     }
 
     /**
@@ -193,23 +192,26 @@ class ScanScreenVM(
     }
 
     /**
-     * @param position: position of the element to update
+     * @param id: ID of the element to update
      * @param newProduct: new product name / description. If null it won't update
      * @param newPrice: new product price. If null it won't update
      * Updates the product at the given index with either the new price or the new product name.
      * Only pass either a new product name or price, not both as it won't update both
      * If you only pass the position, the method won't do anything
      */
-    fun updateProduct(position: Int, newProduct: String? = null, newPrice: Float? = null) {
-        _products.value = _products.value.toMutableList().apply {
-            if (position in indices) {
-                val current = this[position]
-                this[position] = current.copy(
+    // In ScanScreenVM.kt
+    fun updateProduct(id: String, newProduct: String? = null, newPrice: Float? = null) {
+        // We map through the list. If IDs match, we update; otherwise, keep the old one.
+        _products.value = _products.value.map { current ->
+            if (current.id == id) {
+                current.copy(
                     name = newProduct ?: current.name,
                     price = newPrice ?: current.price
                 )
+            } else {
+                current
             }
-        }
+        }.toMutableList()
     }
 
     fun updateSupermarket(newSupermarket: String) {
@@ -343,6 +345,7 @@ sealed class ProcessingState {
 }
 
 data class ScannedProduct(
+    val id: String = UUID.randomUUID().toString(),
     var name: String,
     var price: Float
 )

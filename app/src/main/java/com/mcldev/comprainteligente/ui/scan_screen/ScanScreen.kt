@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -28,7 +29,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ContainedLoadingIndicator
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FabPosition
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -40,7 +42,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -125,15 +126,15 @@ fun ScanScreen(
         ProcessingState.Complete -> ListOfItems(
             products = products,
             supermarket = supermarket ?: "",
-            updateProduct = { newName, newPrice, position ->
-                viewModel.updateProduct(position, newName, newPrice)
+            updateProduct = { newName, newPrice, id ->
+                viewModel.updateProduct(id, newName, newPrice)
             },
             saveProducts = {
                 viewModel.saveProducts()
                 navController.popBackStack()
             },
-            deleteProduct = { position ->
-                viewModel.deleteItem(position)
+            deleteProduct = { id ->
+                viewModel.deleteItem(id)
             },
             updateSupermarket = { newSupermarket ->
                 viewModel.updateSupermarket(newSupermarket)
@@ -154,7 +155,6 @@ fun ScanScreen(
 
 /**
  * @param products: list of products to show.
- * @param prices: list of the prices
  * @param updateProduct: how to update one of the scanned item (price or product description).
  * @param saveProducts: lambda to save the products into the DB
  * @param deleteProduct: lambda that discard a specific item
@@ -171,9 +171,9 @@ fun ListOfItems(
     products: List<ScannedProduct>,
     supermarket: String,
     updateSupermarket: (newName: String) -> Unit,
-    updateProduct: (product: String?, price: Float?, position: Int) -> Unit,
+    updateProduct: (product: String?, price: Float?, id: String) -> Unit,
     saveProducts: () -> Unit,
-    deleteProduct: (position: Int) -> Unit,
+    deleteProduct: (id: String) -> Unit,
     cancel: () -> Unit
 ) {
     var isSupermarketValid by remember { mutableStateOf(supermarket.isNotEmpty()) }
@@ -244,20 +244,14 @@ fun ListOfItems(
             }
 
             LazyColumn {
-                items(products.size) { index ->
-                    var productName by remember(products[index].name) { mutableStateOf(products[index].name) }
-                    var productPrice by remember(products[index].price) { mutableStateOf(products[index].price.toString()) }
+                items(
+                    items = products,
+                    key = { it.id }
+                ) { product ->
+                    var productName by remember(product.name) { mutableStateOf(product.name) }
+                    var productPrice by remember(product.price) { mutableStateOf(product.price.toString()) }
                     val focusManager = LocalFocusManager.current
-                    val currencyTransformation = VisualTransformation { text ->
-                        TransformedText(
-                            text = AnnotatedString("$text R$"),
-                            offsetMapping = object : OffsetMapping {
-                                override fun originalToTransformed(offset: Int) = offset
-                                override fun transformedToOriginal(offset: Int) = offset.coerceAtMost(text.length)
-                            }
-                        )
-                    }
-
+                    val currencyTransformation = CurrencyTransformation
                     Card(
                         modifier = Modifier
                             .padding(horizontal = 8.dp)
@@ -273,7 +267,7 @@ fun ListOfItems(
                                     .weight(0.7f)
                                     .onFocusEvent { focusState ->
                                         if (!focusState.isFocused) {
-                                            updateProduct(productName, null, index)
+                                            updateProduct(productName, null, product.id)
                                         }
                                     },
                                 value = productName,
@@ -303,7 +297,7 @@ fun ListOfItems(
                                     .onFocusEvent { focusState ->
                                         if (!focusState.isFocused) {
                                             productPrice = productPrice.replace(",", ".")
-                                            updateProduct(null, productPrice.toFloatOrNull() ?: 0.0f, index)
+                                            updateProduct(null, productPrice.toFloatOrNull() ?: 0.0f, product.id)
                                         }
                                     },
                                 value = productPrice,
@@ -334,7 +328,7 @@ fun ListOfItems(
                             Spacer(Modifier.width(16.dp))
 
                             Button(
-                                onClick = { deleteProduct(index) },
+                                onClick = { deleteProduct(product.id) },
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = Color.Red.copy(0.75f),
                                     contentColor = Color.White
@@ -342,7 +336,7 @@ fun ListOfItems(
                             ) {
                                 Icon(
                                     painterResource(R.drawable.trash_24),
-                                    contentDescription = "Delete index"
+                                    contentDescription = "Delete product"
                                 )
                             }
                         }
@@ -444,23 +438,33 @@ fun ErrorScreen(
  * In future releases will be revamped to include progress loading bar
  */
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun LoadingScreen() {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .statusBarsPadding(),
+        modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center, // Centers content vertically
         horizontalAlignment = Alignment.CenterHorizontally // Centers content horizontally
     ) {
-        CircularProgressIndicator(
-            modifier = Modifier.width(64.dp),
-            color = MaterialTheme.colorScheme.secondary,
-            trackColor = MaterialTheme.colorScheme.surfaceVariant,
-        )
+        ContainedLoadingIndicator()
         Spacer(Modifier.height(32.dp))
         Text(stringResource(R.string.processing))
     }
 }
 
+// Singleton instance reduce garbage collection adn memory footprint when formating the currency
+object CurrencyTransformation : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText {
+        // Your logic here. Example:
+        val originalText = text.text
+        val formattedText = "R$ $originalText" // Simplified logic
+
+        val offsetMapping = object : OffsetMapping {
+            override fun originalToTransformed(offset: Int): Int = offset + 3 // Adjust for "R$ "
+            override fun transformedToOriginal(offset: Int): Int = if (offset > 3) offset - 3 else 0
+        }
+
+        return TransformedText(AnnotatedString(formattedText), offsetMapping)
+    }
+}
 

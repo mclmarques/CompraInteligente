@@ -1,6 +1,6 @@
 [versions]
 agp = "8.13.1"
-composeBomVersion = "2025.11.00"
+composeBomVersion = "2025.12.00"
 fragmentCompose = "1.8.9"
 koinAndroidxCompose = "4.1.1"
 kotlin = "2.2.21"
@@ -8,21 +8,22 @@ coreKtx = "1.17.0"
 junit = "4.13.2"
 junitVersion = "1.3.0"
 espressoCore = "3.7.0"
-lifecycleRuntimeKtx = "2.9.4"
-activityCompose = "1.11.0"
-composeBom = "2025.11.00"
-material3 = "1.4.0"
+lifecycleRuntimeKtx = "2.10.0"
+activityCompose = "1.12.1"
+composeBom = "2025.12.00"
+material3 = "1.5.0-alpha06"
 mockitoCore = "5.20.0"
 mockitoKotlin = "6.1.0"
 mockk = "1.14.6"
 mockkAndroid = "1.14.6"
 playServicesMlkitDocumentScanner = "16.0.0"
-roomRuntime = "2.8.3"
+roomRuntime = "2.8.4"
 composeNavigation = "2.9.6"
 serialization = "1.9.0"
 tesseract4androidOpenmp = "4.9.0"
 koin = "4.1.1"
 workRuntimeKtx = "2.11.0"
+material = "1.13.0"
 
 [libraries]
 androidx-activity-ktx = { module = "androidx.activity:activity-ktx", version.ref = "activityCompose" }
@@ -60,6 +61,7 @@ play-services-mlkit-document-scanner = { module = "com.google.android.gms:play-s
 tesseract4android-openmp = { module = "cz.adaptech.tesseract4android:tesseract4android-openmp", version.ref = "tesseract4androidOpenmp" }
 koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin" }
 koin-test = { module = "io.insert-koin:koin-test-junit4", version.ref = "koin" }
+material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
