@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.mcldev.comprainteligente.ui.AppNavigation
 import com.mcldev.comprainteligente.ui.home_screen.HomeScreen
 import com.mcldev.comprainteligente.ui.home_screen.HomeScreenVM
 import com.mcldev.comprainteligente.ui.scan_screen.ScanScreen
@@ -56,36 +57,7 @@ class MainActivity : ComponentActivity() {
                         }
 
                         is StartupResult.Success -> {
-                            val homeScreenVM = getViewModel<HomeScreenVM>()
-                            val scanScreenVM = getViewModel<ScanScreenVM>()
-                            val settingsScreenVM = getViewModel<SettingsScreenVM>()
-
-                            val navController = rememberNavController()
-                            NavHost(
-                                navController = navController,
-                                startDestination = Screen.Home.route
-                            ) {
-                                composable(Screen.Home.route) {
-                                    HomeScreen(
-                                        modifier = Modifier,
-                                        viewModel = homeScreenVM,
-                                        navController = navController
-                                    )
-                                }
-                                composable(Screen.Scan.route) {
-                                    ScanScreen(
-                                        viewModel = scanScreenVM,
-                                        navController = navController
-                                    )
-                                }
-                                //composable(Screen.Receipts.route) { ReceiptsScreen(modifier = Modifier, viewModel = homeScreenViewModel, navController = navController) }
-                                composable(Screen.Settings.route) {
-                                    SettingsScreen(
-                                        navController,
-                                        settingsScreenVM
-                                    )
-                                }
-                            }
+                            AppNavigation()
                         }
                     }
                 }

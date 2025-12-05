@@ -15,7 +15,7 @@ android {
     defaultConfig {
         applicationId = "com.mcldev.comprainteligente"
         minSdk = 29
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -107,7 +107,8 @@ dependencies {
     //Koin
     // Koin for Android
     implementation(libs.koin.android)
-    testImplementation(libs.koin.test)
+    // Koin for Jetpack Compose
+    implementation(libs.koin.androidx.compose)
 
     //Work Manager
     implementation(libs.androidx.work.runtime.ktx)

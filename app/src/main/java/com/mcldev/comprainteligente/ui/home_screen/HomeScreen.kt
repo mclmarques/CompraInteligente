@@ -82,7 +82,7 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun HomeScreen(
-    modifier: Modifier,
+    modifier: Modifier = Modifier,
     viewModel: HomeScreenVM,
     navController: NavHostController
 ) {

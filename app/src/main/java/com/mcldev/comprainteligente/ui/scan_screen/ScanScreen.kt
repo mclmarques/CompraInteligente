@@ -449,29 +449,18 @@ fun LoadingScreen() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .statusBarsPadding()
+            .statusBarsPadding(),
+        verticalArrangement = Arrangement.Center, // Centers content vertically
+        horizontalAlignment = Alignment.CenterHorizontally // Centers content horizontally
     ) {
-        // Back button
-
-            Column(
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .padding(horizontal = 16.dp)
-                .fillMaxHeight()
-        ) {
-            CircularProgressIndicator(
-                modifier = Modifier.width(64.dp),
-                color = MaterialTheme.colorScheme.secondary,
-                trackColor = MaterialTheme.colorScheme.surfaceVariant,
-            )
-            Spacer(Modifier.height(32.dp))
-            Text(stringResource(R.string.processing))
-
-        }
-        }
+        CircularProgressIndicator(
+            modifier = Modifier.width(64.dp),
+            color = MaterialTheme.colorScheme.secondary,
+            trackColor = MaterialTheme.colorScheme.surfaceVariant,
+        )
+        Spacer(Modifier.height(32.dp))
+        Text(stringResource(R.string.processing))
+    }
 }
 
 
