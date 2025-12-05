@@ -37,6 +37,9 @@ import com.mcldev.comprainteligente.util.StartupChecker
 import com.mcldev.comprainteligente.util.StartupResult
 import org.koin.android.ext.android.inject
 import org.koin.androidx.viewmodel.ext.android.getViewModel
+import kotlin.system.exitProcess
+import android.os.Process
+import kotlin.system.exitProcess
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -50,7 +53,11 @@ class MainActivity : ComponentActivity() {
                     when (result) {
                         is StartupResult.Error -> {
                             AlertDialog(
-                                onConfirmation = { finishAffinity() },
+                                onConfirmation = {
+                                    finishAndRemoveTask()
+                                    Process.killProcess(Process.myPid())
+                                    exitProcess(0)
+                                },
                                 errCode = result.code,
                                 icon = R.drawable.warning_ic
                             )

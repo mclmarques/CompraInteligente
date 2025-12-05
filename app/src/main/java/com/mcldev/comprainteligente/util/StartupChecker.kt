@@ -17,7 +17,7 @@ class StartupChecker(
         actManager.getMemoryInfo(memInfo)
         val totalMemory = memInfo.totalMem.toDouble() / (1024 * 1024 * 1024)
 
-        if (totalMemory < 2) {
+        if (totalMemory < 22) {
             return StartupResult.Error(ErrorCodes.UNSUPPORTED_DEVICE_ERROR_1)
         }
 
