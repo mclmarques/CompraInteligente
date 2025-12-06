@@ -14,6 +14,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -26,6 +31,8 @@ import com.mcldev.comprainteligente.ui.theme.CompraInteligenteTheme
 import com.mcldev.comprainteligente.ui.util.ErrorCodes
 import com.mcldev.comprainteligente.util.StartupChecker
 import com.mcldev.comprainteligente.util.StartupResult
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.koin.android.ext.android.inject
 import kotlin.system.exitProcess
 
@@ -37,8 +44,14 @@ class MainActivity : ComponentActivity() {
             CompraInteligenteTheme {
                 Surface {
                     val startupChecker: StartupChecker by inject()
-                    val result = startupChecker.checkDevice()
-                    when (result) {
+                    var startupResult by remember { mutableStateOf<StartupResult>(StartupResult.Error(ErrorCodes.UNSUPPORTED_DEVICE_ERROR_1)) }
+                    LaunchedEffect(Unit) {
+                        withContext(Dispatchers.IO) {
+                            // Update the state when finished
+                            startupResult = startupChecker.checkDevice()
+                        }
+                    }
+                    when (val result = startupResult) {
                         is StartupResult.Error -> {
                             AlertDialog(
                                 onConfirmation = {
