@@ -1,6 +1,7 @@
 package com.mcldev.comprainteligente
 import androidx.room.Room
 import com.mcldev.comprainteligente.data.database.DataBase
+import com.mcldev.comprainteligente.data.repository.ImageRepository
 import com.mcldev.comprainteligente.data.util.createTessFolder
 import com.mcldev.comprainteligente.ui.home_screen.HomeScreenVM
 import com.mcldev.comprainteligente.ui.scan_screen.ScanScreenVM
@@ -24,12 +25,15 @@ val appModule = module {
     single { get<DataBase>().productDao() }
     single { get<DataBase>().supermarketDao() }
 
+    //Provide Repos
+    single { ImageRepository(get()) }
+
     // Provide any additional dependencies
     single { createTessFolder(context = androidContext()) }
     single { StartupChecker(get()) }
 
     // Provide ViewModels
     viewModel { HomeScreenVM(get(), get()) }
-    viewModel { ScanScreenVM(get(), get(), get()) }
+    viewModel { ScanScreenVM(get(), get(), get(), get()) }
     viewModel { SettingsScreenVM(androidContext().applicationContext) }
 }

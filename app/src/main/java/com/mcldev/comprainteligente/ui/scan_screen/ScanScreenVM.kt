@@ -1,12 +1,8 @@
 package com.mcldev.comprainteligente.ui.scan_screen
 
-import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.net.Uri
-import android.os.Environment
 import android.util.Log
-import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanner
@@ -19,6 +15,7 @@ import com.mcldev.comprainteligente.data.dao.ProductDao
 import com.mcldev.comprainteligente.data.dao.SupermarketDao
 import com.mcldev.comprainteligente.data.entities.Product
 import com.mcldev.comprainteligente.data.entities.Supermarket
+import com.mcldev.comprainteligente.data.repository.ImageRepository
 import com.mcldev.comprainteligente.ui.util.ErrorCodes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,8 +23,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.File
-import java.io.IOException
 import java.util.UUID
 
 /**
@@ -43,7 +38,8 @@ import java.util.UUID
 class ScanScreenVM(
     private val path: String,
     private val productDao: ProductDao,
-    private val supermarketDao: SupermarketDao
+    private val supermarketDao: SupermarketDao,
+    private val imageRepository: ImageRepository
 ) : ViewModel() {
     private var imageUri: Uri? = null
 
@@ -79,20 +75,14 @@ class ScanScreenVM(
      * Once complete, the State is changed to Complete
      *
      */
-    fun processImage(context: Context, uri: Uri) {
+    fun processImage(uri: Uri) {
         _processingState.value = ProcessingState.Loading
         if (uri.path != null) {
             imageUri = uri
-            var bitmap: Bitmap? = null
-            viewModelScope.launch {
-                bitmap = withContext(Dispatchers.IO) {
-                    loadAndSaveBitmap(
-                        uri = uri,
-                        context = context
-                    )
-                }
+            viewModelScope.launch (Dispatchers.IO) {
+                val bitmap = imageRepository.loadAndSaveBitmap(uri)
                 if (bitmap != null) {
-                    performOCR(bitmap!!)?.let {
+                    performOCR(bitmap)?.let {
                         Log.i("OCR", it)
                         postProcessOCRText(it) }
                     _processingState.value = ProcessingState.Complete
@@ -236,33 +226,6 @@ class ScanScreenVM(
     }
 
     //Internal helper methods of the viewmodel
-
-
-    /**
-     * @param uri: uri to load the bitmap
-     */
-    private suspend fun loadAndSaveBitmap(uri: Uri, context: Context): Bitmap? {
-        return withContext(Dispatchers.IO) {
-            val bitmap: Bitmap?
-            val inputStream = context.contentResolver.openInputStream(uri)
-            bitmap = BitmapFactory.decodeStream(inputStream)
-            inputStream?.close()
-
-            // Save the bitmap to a file
-            val saveUri = context.createImageFile()
-            try {
-                context.contentResolver.openOutputStream(saveUri)?.use { outputStream ->
-                    bitmap?.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
-                }
-            } catch (e: IOException) {
-                storageFault()
-            }
-
-            bitmap // Return the loaded Bitmap
-        }
-    }
-
-
     /**
      * @param image: the bitmap to extract the text from
      * @return: extracted text from the image
@@ -311,30 +274,6 @@ class ScanScreenVM(
 
         _products.value = updatedProducts
     }
-}
-
-/**
- * Auxiliary method to create the image file. It stores in teh shared preferences a index to keep
- * track of the pictures and avoid overwriting them
- */
-fun Context.createImageFile(): Uri {
-    val sharedPreferences = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-    var index = sharedPreferences.getInt("last_receipt_index", 0)
-    index++
-
-    val storageDir: File? = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
-    if (storageDir != null && !storageDir.exists()) {
-        storageDir.mkdirs() // Ensure the directory exists
-    }
-    val newFile = File(storageDir, "receipt$index.jpg")
-
-    // Save the new index
-    sharedPreferences.edit().putInt("last_receipt_index", index).apply()
-    return FileProvider.getUriForFile(
-        this,
-        "${applicationContext.packageName}.provider",
-        newFile
-    )
 }
 
 sealed class ProcessingState {

@@ -1,5 +1,6 @@
 package com.mcldev.comprainteligente.ui.scan_screen
 
+
 import android.app.Activity
 import android.app.Activity.RESULT_OK
 import android.content.Intent
@@ -100,7 +101,7 @@ fun ScanScreen(
                 val result = GmsDocumentScanningResult.fromActivityResultIntent(it.data)
                 if (result != null) {
                     result.pages?.let { pages ->
-                        viewModel.processImage(context = context, uri = pages[0].imageUri)
+                        viewModel.processImage(uri = pages[0].imageUri)
                     }
                 } else {
                     viewModel.ocrFault()
