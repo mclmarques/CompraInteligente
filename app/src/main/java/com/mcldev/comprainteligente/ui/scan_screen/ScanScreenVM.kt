@@ -84,11 +84,13 @@ class ScanScreenVM(
         if (uri.path != null) {
             imageUri = uri
             var bitmap: Bitmap? = null
-            viewModelScope.launch(Dispatchers.IO) {
-                bitmap = loadAndSaveBitmap(
-                    uri = uri,
-                    context = context
-                )
+            viewModelScope.launch {
+                bitmap = withContext(Dispatchers.IO) {
+                    loadAndSaveBitmap(
+                        uri = uri,
+                        context = context
+                    )
+                }
                 if (bitmap != null) {
                     performOCR(bitmap!!)?.let {
                         Log.i("OCR", it)
