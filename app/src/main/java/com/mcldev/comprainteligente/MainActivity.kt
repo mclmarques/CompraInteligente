@@ -5,11 +5,13 @@ import android.os.Process
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -44,7 +46,7 @@ class MainActivity : ComponentActivity() {
             CompraInteligenteTheme {
                 Surface {
                     val startupChecker: StartupChecker by inject()
-                    var startupResult by remember { mutableStateOf<StartupResult>(StartupResult.Error(ErrorCodes.UNSUPPORTED_DEVICE_ERROR_1)) }
+                    var startupResult by remember { mutableStateOf<StartupResult>(StartupResult.Idle) }
                     LaunchedEffect(Unit) {
                         withContext(Dispatchers.IO) {
                             // Update the state when finished
@@ -66,6 +68,16 @@ class MainActivity : ComponentActivity() {
 
                         is StartupResult.Success -> {
                             AppNavigation()
+                        }
+
+                        else -> {
+                            //This empty section is to give time for startupResult to get calculated and don't show an error screen while checking.
+                            Surface(
+                                modifier = Modifier.fillMaxSize(),
+                                color = MaterialTheme.colorScheme.background
+                            ) {
+                                // Intentionally empty
+                            }
                         }
                     }
                 }

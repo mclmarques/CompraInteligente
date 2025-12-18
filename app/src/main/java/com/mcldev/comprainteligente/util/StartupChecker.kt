@@ -35,5 +35,6 @@ class StartupChecker(
 
 sealed class StartupResult {
     object Success : StartupResult()
+    object Idle: StartupResult()
     class Error(val code: ErrorCodes) : StartupResult()
 }
