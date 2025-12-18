@@ -101,7 +101,7 @@ fun ScanScreen(
                 val result = GmsDocumentScanningResult.fromActivityResultIntent(it.data)
                 if (result != null) {
                     result.pages?.let { pages ->
-                        viewModel.processImage(uri = pages[0].imageUri)
+                        viewModel.processImage(uri = pages[0].imageUri, context = context)
                     }
                 } else {
                     viewModel.ocrFault()
