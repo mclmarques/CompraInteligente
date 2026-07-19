@@ -10,12 +10,12 @@ plugins {
 
 android {
     namespace = "com.mcldev.comprainteligente"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.mcldev.comprainteligente"
         minSdk = 29
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -76,7 +76,6 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
@@ -88,7 +87,6 @@ dependencies {
     //MaterialTheme3
     implementation(libs.material3)
     implementation(libs.androidx.compose.material.icons.extended)
-    implementation(libs.androidx.compose.material3.material3)
 
 
     //Room
@@ -115,8 +113,6 @@ dependencies {
     //Work Manager
     implementation(libs.androidx.work.runtime.ktx)
 
-    //Suport for links inside the credits section
-    implementation(platform(libs.androidx.compose.bom.v20250101))
 
 
     //Memory leak check
