@@ -14,6 +14,9 @@ import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions.RESULT_FORMAT_JPEG
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions.SCANNER_MODE_BASE
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanning
+import com.google.ai.edge.litertlm.Backend
+import com.google.ai.edge.litertlm.Engine
+import com.google.ai.edge.litertlm.EngineConfig
 import com.googlecode.tesseract.android.TessBaseAPI
 import com.mcldev.comprainteligente.data.dao.ProductDao
 import com.mcldev.comprainteligente.data.dao.SupermarketDao
@@ -26,6 +29,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 import java.io.IOException
 import java.util.UUID
@@ -55,6 +59,38 @@ class ScanScreenVM(
 
     private val _supermarket = MutableStateFlow<String?>(null)
     val supermarket = _supermarket.asStateFlow()
+
+    private var engine: Engine? = null
+
+    private suspend fun initializeLlmEngine(context: Context) {
+        if (engine != null) return
+
+        val modelFile = File(context.filesDir, "gemma_270m.litertlm")
+        if (!modelFile.exists()) {
+            withContext(Dispatchers.IO) {
+                try {
+                    context.assets.open("gemma_270m.litertlm").use { input ->
+                        modelFile.outputStream().use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+                } catch (e: IOException) {
+                    Log.e("LLM", "Error copying model file", e)
+                }
+            }
+        }
+
+        if (modelFile.exists()) {
+            withContext(Dispatchers.IO) {
+                val config = EngineConfig(
+                    modelPath = modelFile.absolutePath,
+                    backend = Backend.CPU()
+                )
+                engine = Engine(config)
+                engine?.initialize()
+            }
+        }
+    }
 
 
     fun prepareScanner(): GmsDocumentScanner {
@@ -94,7 +130,7 @@ class ScanScreenVM(
                 if (bitmap != null) {
                     performOCR(bitmap!!)?.let {
                         Log.i("OCR", it)
-                        postProcessOCRText(it) }
+                        postProcessOCRText(context, it) }
                     _processingState.value = ProcessingState.Complete
                 } else {
                     ocrFault()
@@ -282,7 +318,122 @@ class ScanScreenVM(
             recognizedText
         }
     }
-    private suspend fun postProcessOCRText(ocrText: String) {
+    private suspend fun postProcessOCRText(context: Context, ocrText: String) {
+        val cleanedText = preprocessOcrWithRegex(ocrText)
+        Log.i("LLM", "Cleaned Text: $cleanedText")
+
+        try {
+            initializeLlmEngine(context)
+            if (engine == null) {
+                Log.w("LLM", "Engine failed to initialize, falling back to Regex")
+                regexFallback(ocrText)
+                return
+            }
+
+            val prompt = """
+                <start_of_turn>user
+                Extract Supermarket and Products from this receipt.
+                Format:
+                Supermercado: [Name]
+                Produtos:
+                - [Name] | [Price]
+
+                Receipt Text:
+                $cleanedText
+                <end_of_turn>
+                <start_of_turn>model
+            """.trimIndent() + "\n"
+
+            val response = StringBuilder()
+            withContext(Dispatchers.Default) {
+                withTimeoutOrNull(45000) { // 45 seconds max for inference
+                    engine?.createConversation()?.use { conversation ->
+                        conversation.sendMessageAsync(prompt).collect { token ->
+                            Log.d("LLM_TOKEN", "Token: '$token'")
+                            response.append(token)
+                        }
+                    }
+                }
+            }
+
+            val llmOutput = response.toString()
+            Log.i("LLM", "Output: $llmOutput")
+
+            if (llmOutput.contains("Supermercado:", ignoreCase = true) && 
+                llmOutput.contains("Produtos:", ignoreCase = true)) {
+                parseLlmOutput(llmOutput)
+            } else {
+                Log.w("LLM", "LLM output invalid format, falling back to Regex")
+                regexFallback(ocrText)
+            }
+        } catch (e: Throwable) {
+            Log.e("LLM", "LLM Error (including potential LinkageErrors), falling back to Regex", e)
+            regexFallback(ocrText)
+        }
+    }
+
+    private fun preprocessOcrWithRegex(ocrText: String): String {
+        val lines = ocrText.lines()
+        val cleanedLines = mutableListOf<String>()
+
+        // Supermarket name is usually in the first 5 lines.
+        // Try to find the first line that has more than 3 letters and isn't just numbers/symbols
+        val potentialName = lines.take(5).find { it.trim().length > 3 && it.any { c -> c.isLetter() } }
+        if (potentialName != null) {
+            cleanedLines.add("LOJA: ${potentialName.trim()}")
+        }
+
+        // Regex for product lines: looking for something like "NAME ... PRICE"
+        // Most products have a name and then a price like "1,99" or "10.00" at the end
+        val productLineRegex = Regex("""(?i)([a-z].*)\s+(\d+[,.]\d{2})""")
+
+        for (line in lines) {
+            val trimmed = line.trim()
+            if (trimmed.isBlank()) continue
+
+            val match = productLineRegex.find(trimmed)
+            if (match != null) {
+                // Keep only the simplified version: Name and Price
+                val name = match.groupValues[1].trim()
+                val price = match.groupValues[2].trim()
+                cleanedLines.add("$name | $price")
+            }
+        }
+
+        return cleanedLines.joinToString("\n")
+    }
+
+    private fun parseLlmOutput(output: String) {
+        val lines = output.lines()
+        val supermarketName = lines.find { it.startsWith("Supermercado:", ignoreCase = true) }
+            ?.removePrefix("Supermercado:")?.trim()
+
+        _supermarket.value = supermarketName
+
+        val updatedProducts = mutableListOf<ScannedProduct>()
+        var inProducts = false
+        for (line in lines) {
+            if (line.startsWith("Produtos:", ignoreCase = true)) {
+                inProducts = true
+                continue
+            }
+            if (inProducts && line.trim().startsWith("-")) {
+                val parts = line.trim().removePrefix("-").split("|")
+                if (parts.size >= 2) {
+                    val name = parts[0].trim()
+                    val priceStr = parts[1].trim().replace(",", ".")
+                    val price = priceStr.filter { it.isDigit() || it == '.' }.toFloatOrNull() ?: 0f
+                    updatedProducts.add(ScannedProduct(name = name, price = price))
+                }
+            }
+        }
+
+        if (updatedProducts.isNotEmpty()) {
+            _products.value = updatedProducts
+        }
+    }
+
+    private fun regexFallback(ocrText: String) {
         val lines = ocrText.lines()
         _supermarket.value = lines.getOrNull(1)
 
@@ -310,6 +461,10 @@ class ScanScreenVM(
         }
 
         _products.value = updatedProducts
+    }
+
+    override fun onCleared() {
+        engine?.close()
     }
 }
 

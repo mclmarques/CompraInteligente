@@ -21,6 +21,8 @@ tesseract4androidOpenmp = "4.9.0"
 koin = "4.2.2"
 workRuntimeKtx = "2.11.2"
 material = "1.14.0"
+litertlm = "0.14.0"
+kotlinxCoroutines = "1.11.0"
 
 [libraries]
 androidx-activity-ktx = { module = "androidx.activity:activity-ktx", version.ref = "activityCompose" }
@@ -54,6 +56,9 @@ play-services-mlkit-document-scanner = { module = "com.google.android.gms:play-s
 tesseract4android-openmp = { module = "cz.adaptech.tesseract4android:tesseract4android-openmp", version.ref = "tesseract4androidOpenmp" }
 koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+litertlm-android = { module = "com.google.ai.edge.litertlm:litertlm-android", version.ref = "litertlm" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
+kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinxCoroutines" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

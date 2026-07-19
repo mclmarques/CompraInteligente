@@ -113,6 +113,11 @@ dependencies {
     //Work Manager
     implementation(libs.androidx.work.runtime.ktx)
 
+    // LiteRT-LM for GenAI
+    implementation(libs.litertlm.android)
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.coroutines.android)
+
 
 
     //Memory leak check
