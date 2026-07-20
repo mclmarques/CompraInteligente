@@ -35,8 +35,8 @@ import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 import java.io.IOException
 import java.util.UUID
-import androidx.core.content.edit
 import kotlin.time.Duration.Companion.milliseconds
+import androidx.core.content.edit
 
 /**
  * @param path: path to load the data of tesseract
@@ -110,9 +110,9 @@ class ScanScreenVM(
     }
 
     /**
-     * @param uri: URI of the photo to perform the OCR operation on
-     * This changes the State to Loading and calls the loadAndSave bitmap to load the bitmap from the URI and locally save the image.
-     * Afterwards it cals the performOcr and finally the postProcessOcr, that takes the String from the performOcr and
+     * @param uri URI of the photo to perform the OCR operation on
+     * These changes the State to Loading and calls the loadAndSave bitmap to load the bitmap from the URI and locally save the image.
+     * Afterward it cals the performOcr and finally the postProcessOcr, that takes the String from the performOcr and
      * adjust it.
      * The method doesn't return anything because the postProcessOcr already saves the data into the appropriate
      * _products & _prices lists
@@ -167,10 +167,10 @@ class ScanScreenVM(
     }
 
     /**
-     * This methods checks that a supermarket name was provided and search's for it in the DB.
+     * These methods check that a supermarket name was provided and search's for it in the DB.
      * If it is found, the average is updated, and the products get linked to that supermarket
      * Else, a new supermarket is created, and the average and products get linked to it.
-     * If this process fails, an error screen is shown, indicating an storage error as the likely cause.
+     * If this process fails, an error screen is shown, indicating a storage error as the likely cause.
      */
     fun saveProducts() {
         viewModelScope.launch(Dispatchers.Default) {
@@ -196,8 +196,8 @@ class ScanScreenVM(
 
                     for (item in products.value.indices) {
                         val product = Product(
-                            name = products.value.get(item).name,
-                            price = products.value.get(item).price,
+                            name = products.value[item].name,
+                            price = products.value[item].price,
                             supermarketId = supermarketEntity.id,
                             date = System.currentTimeMillis()
                         )
@@ -218,8 +218,8 @@ class ScanScreenVM(
                     if (supermarketEntity != null) {
                         for (item in products.value.indices) {
                             val product = Product(
-                                name = products.value.get(item).name,
-                                price = products.value.get(item).price,
+                                name = products.value[item].name,
+                                price = products.value[item].price,
                                 supermarketId = supermarketEntity.id,
                                 date = System.currentTimeMillis()
                             )
@@ -233,8 +233,8 @@ class ScanScreenVM(
 
     /**
      * @param id: ID of the element to update
-     * @param newProduct: new product name / description. If null it won't update
-     * @param newPrice: new product price. If null it won't update
+     * @param newProduct new product name / description. If null it won't update
+     * @param newPrice new product price. If null it won't update
      * Updates the product at the given index with either the new price or the new product name.
      * Only pass either a new product name or price, not both as it won't update both
      * If you only pass the position, the method won't do anything
@@ -305,17 +305,16 @@ class ScanScreenVM(
 
     /**
      * @param image: the bitmap to extract the text from
-     * @return: extracted text from the image
+     * @return extracted text from the image
      * The method uses the tesserat API to extract the text. IT ASSUMES THE IMAGE IS ALREADY PREPROCESSED
      */
     private suspend fun performOCR(image: Bitmap): String? {
         return withContext(Dispatchers.Default) {
-            val tessBaseAPI: TessBaseAPI?
             // setup tessBaseApi
-            tessBaseAPI = TessBaseAPI()
+            val tessBaseAPI = TessBaseAPI()
             tessBaseAPI.init(path, "por") // or other languages
             tessBaseAPI.setImage(image)
-            tessBaseAPI.setPageSegMode(TessBaseAPI.PageSegMode.PSM_AUTO)
+            tessBaseAPI.pageSegMode = TessBaseAPI.PageSegMode.PSM_AUTO
             val recognizedText = tessBaseAPI.utF8Text
             tessBaseAPI.stop()
             tessBaseAPI.recycle()
@@ -503,8 +502,8 @@ class ScanScreenVM(
      * Picks the unit price out of all the price-shaped numbers found in a line. Brazilian
      * receipt lines are laid out as [qty/weight] [unit price] [line total], so when 2+ prices
      * are present the *second-to-last* one is the unit price and the *last* one is the total
-     * paid for that line (previously the code always took the last one, which quietly saved
-     * the total paid instead of the unit price for every weight-based item). When only one
+     * paid for that line. (Previously the code always took the last one, which quietly saved
+     * the total paid instead of the unit price for every weight-based item.) When only one
      * price is present - a single unit sold at qty 1, where unit price == total - that one is
      * used.
      */
@@ -552,7 +551,7 @@ class ScanScreenVM(
 }
 
 /**
- * Auxiliary method to create the image file. It stores in teh shared preferences a index to keep
+ * Auxiliary method to create the image file. It stores in teh shared preferences an index to keep
  * track of the pictures and avoid overwriting them
  */
 fun Context.createImageFile(): Uri {
