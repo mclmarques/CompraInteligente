@@ -15,8 +15,10 @@ import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions.RESULT_
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions.SCANNER_MODE_BASE
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanning
 import com.google.ai.edge.litertlm.Backend
+import com.google.ai.edge.litertlm.ConversationConfig
 import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
+import com.google.ai.edge.litertlm.SamplerConfig
 import com.googlecode.tesseract.android.TessBaseAPI
 import com.mcldev.comprainteligente.data.dao.ProductDao
 import com.mcldev.comprainteligente.data.dao.SupermarketDao
@@ -33,6 +35,8 @@ import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 import java.io.IOException
 import java.util.UUID
+import androidx.core.content.edit
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * @param path: path to load the data of tesseract
@@ -319,148 +323,227 @@ class ScanScreenVM(
         }
     }
     private suspend fun postProcessOCRText(context: Context, ocrText: String) {
-        val cleanedText = preprocessOcrWithRegex(ocrText)
-        Log.i("LLM", "Cleaned Text: $cleanedText")
+        // The supermarket name heuristic already works fine on its own (see logs), so it
+        // doesn't need to go through the LLM at all - one less thing that can fail.
+        extractSupermarketName(ocrText.lines())?.let { _supermarket.value = it }
+
+        val candidateLines = extractCandidateLines(ocrText)
+        Log.i("LLM", "Candidate lines (${candidateLines.size}): ${candidateLines.joinToString(" || ")}")
+
+        if (candidateLines.isEmpty()) {
+            ocrFault()
+            return
+        }
 
         try {
             initializeLlmEngine(context)
-            if (engine == null) {
-                Log.w("LLM", "Engine failed to initialize, falling back to Regex")
-                regexFallback(ocrText)
-                return
-            }
-
-            val prompt = """
-                <start_of_turn>user
-                Extract Supermarket and Products from this receipt.
-                Format:
-                Supermercado: [Name]
-                Produtos:
-                - [Name] | [Price]
-
-                Receipt Text:
-                $cleanedText
-                <end_of_turn>
-                <start_of_turn>model
-            """.trimIndent() + "\n"
-
-            val response = StringBuilder()
-            withContext(Dispatchers.Default) {
-                withTimeoutOrNull(45000) { // 45 seconds max for inference
-                    engine?.createConversation()?.use { conversation ->
-                        conversation.sendMessageAsync(prompt).collect { token ->
-                            Log.d("LLM_TOKEN", "Token: '$token'")
-                            response.append(token)
-                        }
-                    }
-                }
-            }
-
-            val llmOutput = response.toString()
-            Log.i("LLM", "Output: $llmOutput")
-
-            if (llmOutput.contains("Supermercado:", ignoreCase = true) && 
-                llmOutput.contains("Produtos:", ignoreCase = true)) {
-                parseLlmOutput(llmOutput)
-            } else {
-                Log.w("LLM", "LLM output invalid format, falling back to Regex")
-                regexFallback(ocrText)
-            }
         } catch (e: Throwable) {
-            Log.e("LLM", "LLM Error (including potential LinkageErrors), falling back to Regex", e)
-            regexFallback(ocrText)
-        }
-    }
-
-    private fun preprocessOcrWithRegex(ocrText: String): String {
-        val lines = ocrText.lines()
-        val cleanedLines = mutableListOf<String>()
-
-        // Supermarket name is usually in the first 5 lines.
-        // Try to find the first line that has more than 3 letters and isn't just numbers/symbols
-        val potentialName = lines.take(5).find { it.trim().length > 3 && it.any { c -> c.isLetter() } }
-        if (potentialName != null) {
-            cleanedLines.add("LOJA: ${potentialName.trim()}")
+            Log.e("LLM", "LLM Error (including potential LinkageErrors) while initializing", e)
         }
 
-        // Regex for product lines: looking for something like "NAME ... PRICE"
-        // Most products have a name and then a price like "1,99" or "10.00" at the end
-        val productLineRegex = Regex("""(?i)([a-z].*)\s+(\d+[,.]\d{2})""")
-
-        for (line in lines) {
-            val trimmed = line.trim()
-            if (trimmed.isBlank()) continue
-
-            val match = productLineRegex.find(trimmed)
-            if (match != null) {
-                // Keep only the simplified version: Name and Price
-                val name = match.groupValues[1].trim()
-                val price = match.groupValues[2].trim()
-                cleanedLines.add("$name | $price")
-            }
+        if (engine == null) {
+            Log.w("LLM", "Engine failed to initialize, falling back to Regex for every line")
+            _products.value = candidateLines.mapNotNull { parseLineWithRegex(it) }.toMutableList()
+            return
         }
 
-        return cleanedLines.joinToString("\n")
-    }
-
-    private fun parseLlmOutput(output: String) {
-        val lines = output.lines()
-        val supermarketName = lines.find { it.startsWith("Supermercado:", ignoreCase = true) }
-            ?.removePrefix("Supermercado:")?.trim()
-
-        _supermarket.value = supermarketName
-
+        // IMPORTANT: a 270M-parameter model can't reliably extract 15+ noisy items in a single
+        // shot (it needs ~17s just to prefill a whole-receipt prompt, and tends to trail off
+        // instead of following the format - see "The output is:" in the logs). Asking it to
+        // clean up ONE line at a time is a task it can actually do, keeps each call fast enough
+        // to stay well inside a sane timeout, and means a single bad line can't take down the
+        // whole scan - it just falls back to the regex parser for that one line.
         val updatedProducts = mutableListOf<ScannedProduct>()
-        var inProducts = false
-        for (line in lines) {
-            if (line.startsWith("Produtos:", ignoreCase = true)) {
-                inProducts = true
-                continue
-            }
-            if (inProducts && line.trim().startsWith("-")) {
-                val parts = line.trim().removePrefix("-").split("|")
-                if (parts.size >= 2) {
-                    val name = parts[0].trim()
-                    val priceStr = parts[1].trim().replace(",", ".")
-                    val price = priceStr.filter { it.isDigit() || it == '.' }.toFloatOrNull() ?: 0f
-                    updatedProducts.add(ScannedProduct(name = name, price = price))
+        for (line in candidateLines) {
+            val product = try {
+                withContext(Dispatchers.Default) {
+                    withTimeoutOrNull(10_000.milliseconds) { extractProductWithLlm(line) }
                 }
-            }
+            } catch (e: Throwable) {
+                Log.e("LLM", "LLM error on line '$line', falling back to Regex", e)
+                null
+            } ?: parseLineWithRegex(line)
+
+            if (product != null) updatedProducts.add(product)
         }
 
         if (updatedProducts.isNotEmpty()) {
             _products.value = updatedProducts
+        } else {
+            ocrFault()
         }
     }
 
-    private fun regexFallback(ocrText: String) {
-        val lines = ocrText.lines()
-        _supermarket.value = lines.getOrNull(1)
+    /**
+     * Asks the LLM to turn a single, already-cleaned OCR line into "Name | Price". Kept
+     * deterministic (topK = 1, temperature = 0) since this is an extraction task, not a
+     * creative one - we want the model to reliably follow the pattern, not vary its answer.
+     */
+    private suspend fun extractProductWithLlm(line: String): ScannedProduct? {
+        val currentEngine = engine ?: return null
 
-        val productRegex = Regex("""\d{6,14}\s+((\w+\s?){1,5})""")
-        val priceRegex = Regex("""(\d{1,3}[.,]\d{2})""")
+        val prompt = """
+            <start_of_turn>user
+            Extraia o nome do produto e o preco unitario desta linha de um recibo de supermercado brasileiro.
+            Responda em UMA linha, exatamente neste formato: NOME | PRECO
+            Ignore códigos, quantidades e a palavra "kg".
 
-        val updatedProducts = _products.value.toMutableList()
+            Linha: 593 PEITO PERU TEMP RECH kg 1,010KG 63,99 64,63
+            NOME | PRECO: Peito de Peru Temp Rech | 63.99
 
-        for (i in 9 until lines.size) {
-            val productMatch = productRegex.find(lines[i])
-            if (productMatch != null) {
-                val name = productMatch.groupValues[1].trim()
+            Linha: 3994082704 LASANHA SEARA 600G BOLON UN 12,90 12,90
+            NOME | PRECO: Lasanha Seara 600g Bolon | 12.90
 
-                if (updatedProducts.none { it.name == name }) {
+            Linha: $line
+            NOME | PRECO:<end_of_turn>
+            <start_of_turn>model
+        """.trimIndent() + "\n"
 
-                    val priceMatch =
-                        if (i + 1 < lines.size) priceRegex.find(lines[i + 1]) else null
+        val response = StringBuilder()
+        val conversationConfig = ConversationConfig(
+            samplerConfig = SamplerConfig(topK = 1, topP = 1.0, temperature = 0.0)
+        )
+        currentEngine.createConversation(conversationConfig).use { conversation ->
+            conversation.sendMessageAsync(prompt).collect { token -> response.append(token) }
+        }
 
-                    val priceString = priceMatch?.value?.replace(",", ".")
-                    val price = priceString?.toFloatOrNull() ?: 0f
+        val output = response.toString().replace("```", "").trim()
+        Log.d("LLM", "Line: '$line' -> Output: '$output'")
 
-                    updatedProducts.add(ScannedProduct(name = name, price = price))
+        val match = Regex("""([^|\n]+)\|\s*([\d.,]+)""").find(output) ?: return null
+        val name = match.groupValues[1].trim().removeSurrounding("**").trim()
+        val price = match.groupValues[2].trim().replace(",", ".").toFloatOrNull() ?: return null
+
+        if (name.length < 2 || price <= 0f) return null
+        return ScannedProduct(name = name, price = price)
+    }
+
+    /**
+     * True if, after stripping unit codes/digits/symbols, a line doesn't have enough real
+     * letters left to be a genuine product description. Filters out OCR line-wrap continuation
+     * junk such as "Aa UN 9,99 05,00" or "BIN 23,992 9 8a".
+     */
+    private fun looksLikeJunkName(rawName: String): Boolean {
+        val stripped = rawName
+            .replace(Regex("""(?i)\b(UN|KG|PC|CX|LT)\b"""), "")
+            .replace(Regex("""[^\p{L}]"""), "")
+        return stripped.length < 3
+    }
+
+    private fun extractSupermarketName(lines: List<String>): String? {
+        return lines.take(10).find { line ->
+            val trimmed = line.trim().uppercase()
+            trimmed.length > 3 &&
+                    trimmed.any { it.isLetter() } &&
+                    !SKIP_KEYWORDS_REGEX.containsMatchIn(trimmed) &&
+                    !trimmed.contains("NOTA FISCAL")
+        }?.trim()
+    }
+
+    /**
+     * Turns raw OCR output into a list of clean, single-line product candidates, ready to be
+     * handed one at a time to the LLM (or the regex fallback). Two receipt quirks are handled
+     * here so neither the LLM nor the fallback parser have to deal with them:
+     *  - Weight-based items are printed across two OCR lines (description, then qty/price on
+     *    the next), so a description-only line is held and merged with the following line.
+     *  - Barcodes and administrative/total lines are stripped out entirely.
+     */
+    private fun extractCandidateLines(ocrText: String): List<String> {
+        val candidates = mutableListOf<String>()
+        var pendingName: String? = null
+
+        for (rawLine in ocrText.lines()) {
+            var trimmed = rawLine.trim()
+            if (trimmed.isBlank()) continue
+
+            trimmed = BARCODE_REGEX.replace(trimmed, "").trim()
+            if (trimmed.isBlank()) continue
+
+            val upper = trimmed.uppercase()
+            // "PAG" also catches "PAGAMENTO"/"PAGO", not just the literal word "PAGAR"; without
+            // it, "VALOR PAGO"/"FORMA DE PAGAMENTO" summary lines slip through and get treated
+            // as fake products.
+            if (SKIP_KEYWORDS_REGEX.containsMatchIn(upper) ||
+                upper.contains("TOTAL") ||
+                upper.contains("PAG") ||
+                upper.contains("SUBTOTAL") ||
+                upper.contains("TROCO") ||
+                upper.contains("VALOR")
+            ) {
+                continue
+            }
+
+            val hasPrice = PRICE_REGEX.containsMatchIn(trimmed)
+            val hasLetters = trimmed.any { it.isLetter() }
+            // Receipt header/footer lines (timestamp, PDV/DOC numbers, operator name) have no
+            // price and plenty of letters, so without this check they'd get treated as a
+            // pending product description and glued onto whatever the first real item is.
+            val looksLikeHeaderLine = Regex("""\d{2}:\d{2}:\d{2}|\bPDV\b|\bDOC\b|\bLJ\b""").containsMatchIn(upper)
+
+            when {
+                hasPrice && hasLetters && !looksLikeJunkName(trimmed) -> {
+                    candidates.add(if (pendingName != null) "$pendingName $trimmed".trim() else trimmed)
+                    pendingName = null
                 }
+                hasPrice && pendingName != null -> {
+                    candidates.add("$pendingName $trimmed".trim())
+                    pendingName = null
+                }
+                !hasPrice && hasLetters && trimmed.length > 3 && !looksLikeHeaderLine -> {
+                    pendingName = trimmed
+                }
+                else -> { /* barcode/header/noise-only fragment, drop it */ }
             }
         }
 
-        _products.value = updatedProducts
+        return candidates
+    }
+
+    /**
+     * Picks the unit price out of all the price-shaped numbers found in a line. Brazilian
+     * receipt lines are laid out as [qty/weight] [unit price] [line total], so when 2+ prices
+     * are present the *second-to-last* one is the unit price and the *last* one is the total
+     * paid for that line (previously the code always took the last one, which quietly saved
+     * the total paid instead of the unit price for every weight-based item). When only one
+     * price is present - a single unit sold at qty 1, where unit price == total - that one is
+     * used.
+     */
+    private fun extractUnitPrice(matches: List<String>): Float? {
+        if (matches.isEmpty()) return null
+        val chosen = if (matches.size >= 2) matches[matches.size - 2] else matches[0]
+        return chosen.replace(",", ".").toFloatOrNull()
+    }
+
+    /** Regex-only fallback for a single already-cleaned candidate line. */
+    private fun parseLineWithRegex(line: String): ScannedProduct? {
+        val matches = PRICE_REGEX.findAll(line).map { it.value }.toList()
+        val price = extractUnitPrice(matches)?.takeIf { it > 0f } ?: return null
+
+        var name = line
+        matches.forEach { name = name.replace(it, "") }
+        name = name
+            .replace(Regex("""(?i)\b(UN|KG|PC|CX|LT)\b"""), "")
+            .replace(Regex("""\d+"""), "")
+            .replace(Regex("""[^\p{L}\s]"""), "")
+            .replace(Regex("""\s+"""), " ")
+            .trim()
+
+        if (name.length < 3) return null
+        return ScannedProduct(name = name, price = price)
+    }
+
+    companion object {
+        // Matches Brazilian-formatted prices like "63,99". Deliberately rejects a match that's
+        // immediately followed by another digit or by a "k"/"K" - without this, a weight token
+        // like "1,010KG" gets misread as the price "1,01", polluting every weight-based line.
+        private val PRICE_REGEX = Regex("""\d{1,3}[,.]\d{2}(?!\d)(?!\s?[Kk])""")
+        private val BARCODE_REGEX = Regex("""\b\d{6,}\b""") // 6+ digits in a row
+
+        // Whole-word match on purpose: checking "IE" as a bare substring (the original bug)
+        // also matches inside ordinary words like "COOKIE", silently discarding that product.
+        private val SKIP_KEYWORDS_REGEX = Regex(
+            """(?i)\b(CNPJ|CPF|IE|UNPJ|EMITENTE|CONSUMIDOR|FISCAL|ELETRONICA)\b"""
+        )
     }
 
     override fun onCleared() {
@@ -484,7 +567,7 @@ fun Context.createImageFile(): Uri {
     val newFile = File(storageDir, "receipt$index.jpg")
 
     // Save the new index
-    sharedPreferences.edit().putInt("last_receipt_index", index).apply()
+    sharedPreferences.edit { putInt("last_receipt_index", index) }
     return FileProvider.getUriForFile(
         this,
         "${applicationContext.packageName}.provider",
