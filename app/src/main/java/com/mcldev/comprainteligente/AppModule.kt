@@ -1,7 +1,10 @@
 package com.mcldev.comprainteligente
+
 import androidx.room.Room
 import com.mcldev.comprainteligente.data.database.DataBase
 import com.mcldev.comprainteligente.data.repository.ImageRepository
+import com.mcldev.comprainteligente.data.repository.ReceiptRepository
+import com.mcldev.comprainteligente.data.repository.ReceiptRepositoryImpl
 import com.mcldev.comprainteligente.data.util.createTessFolder
 import com.mcldev.comprainteligente.ui.home_screen.HomeScreenVM
 import com.mcldev.comprainteligente.ui.scan_screen.ScanScreenVM
@@ -27,6 +30,7 @@ val appModule = module {
 
     //Provide Repos
     single { ImageRepository(get()) }
+    single<ReceiptRepository> { ReceiptRepositoryImpl(get(), get(), get(), get()) }
 
     // Provide any additional dependencies
     single { createTessFolder(context = androidContext()) }
@@ -34,6 +38,6 @@ val appModule = module {
 
     // Provide ViewModels
     viewModel { HomeScreenVM(get(), get()) }
-    viewModel { ScanScreenVM(get(), get(), get()) }
+    viewModel { ScanScreenVM(get()) }
     viewModel { SettingsScreenVM(androidContext().applicationContext) }
 }

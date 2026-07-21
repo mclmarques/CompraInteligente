@@ -71,6 +71,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult
 import com.mcldev.comprainteligente.R
+import com.mcldev.comprainteligente.data.model.ScannedProduct
 import com.mcldev.comprainteligente.ui.util.ErrorCodes
 
 /**

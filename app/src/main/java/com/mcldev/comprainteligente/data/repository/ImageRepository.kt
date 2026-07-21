@@ -1,17 +1,15 @@
 package com.mcldev.comprainteligente.data.repository
 
-
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.os.Environment
+import androidx.core.content.FileProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 class ImageRepository(private val context: Context) {
 
@@ -30,7 +28,7 @@ class ImageRepository(private val context: Context) {
                 val bitmap = BitmapFactory.decodeStream(inputStream)
                 inputStream?.close()
 
-                // 2. Create a local file to save the copy
+                // 2. Create a local file to save the copy using the indexed naming
                 val saveUri = createImageFile()
 
                 // 3. Save the bitmap to that local file
@@ -42,7 +40,7 @@ class ImageRepository(private val context: Context) {
                 } else {
                     null
                 }
-            } catch (e: IOException) {
+            } catch (e: Exception) {
                 e.printStackTrace()
                 null
             }
@@ -50,21 +48,29 @@ class ImageRepository(private val context: Context) {
     }
 
     /**
-     * Helper to create a file in the app's cache or files directory.
+     * Helper to create a file in the app's pictures directory with indexed naming.
      * Returns a Uri pointing to the new empty file.
-     * Runs on the same thread it is called
      */
-    private fun createImageFile(): Uri? {
+    fun createImageFile(): Uri? {
         return try {
-            val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-            val imageFileName = "JPEG_" + timeStamp + "_"
-            val storageDir = context.getExternalFilesDir(null) // or context.filesDir
-            val image = File.createTempFile(
-                imageFileName, /* prefix */
-                ".jpg", /* suffix */
-                storageDir /* directory */
+            val sharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+            var index = sharedPreferences.getInt("last_receipt_index", 0)
+            index++
+
+            val storageDir: File? = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+            if (storageDir != null && !storageDir.exists()) {
+                storageDir.mkdirs()
+            }
+            val newFile = File(storageDir, "receipt$index.jpg")
+
+            // Save the new index
+            sharedPreferences.edit().putInt("last_receipt_index", index).apply()
+            
+            FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.provider",
+                newFile
             )
-            Uri.fromFile(image)
         } catch (ex: IOException) {
             null
         }
